@@ -110,9 +110,10 @@ export async function dashboardRoutes(app: FastifyInstance): Promise<void> {
         db
           .select({ value: count() })
           .from(applications)
+          .innerJoin(users, eq(applications.teacherId, users.id))
           .where(
             userRow.role === 'dept_admin'
-              ? eq(applications.status, 'pending')
+              ? and(eq(applications.status, 'pending'), eq(users.department, userRow.department))
               : and(eq(applications.status, 'pending'), eq(applications.teacherId, userId)),
           ),
         computeAchievementStats(userId),

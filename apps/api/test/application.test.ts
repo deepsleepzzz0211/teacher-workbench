@@ -1,8 +1,12 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import type { FastifyInstance } from 'fastify'
+import { and, count, eq } from 'drizzle-orm'
 
 import type { ApplicationRecord, Paginated } from '@tw/shared'
 
+import { db } from '../src/db/client'
+import { applications, users } from '../src/db/schema'
+import { hashPassword } from '../src/utils/password'
 import { authHeaders, closeTestApp, createSession, type Session } from './helpers/setup'
 
 describe('调课 / 请假审批模块', () => {
@@ -231,6 +235,149 @@ describe('调课 / 请假审批模块', () => {
         headers: adminHeaders,
       })
       expect(response.statusCode).toBe(400)
+    })
+  })
+
+  describe('审批的状态守卫与院系范围', () => {
+    let otherDeptTeacherId: string
+    let otherDeptApplicationId: string
+    let selfApplicationId: string | undefined
+
+    beforeAll(async () => {
+      const [teacher] = await db
+        .insert(users)
+        .values({
+          username: 'otherdept01',
+          passwordHash: hashPassword('Teach@2026'),
+          name: '赵外院',
+          employeeNo: 'OTHER0001',
+          department: '电子信息学院',
+          title: '讲师',
+          role: 'teacher',
+        })
+        .returning({ id: users.id })
+      otherDeptTeacherId = teacher!.id
+
+      const [application] = await db
+        .insert(applications)
+        .values({
+          teacherId: otherDeptTeacherId,
+          type: 'leave',
+          originalDate: '2026-09-25',
+          originalSection: '第1-2节',
+          reason: '其他院系的请假申请，用于验证审批范围隔离',
+          status: 'pending',
+        })
+        .returning({ id: applications.id })
+      otherDeptApplicationId = application!.id
+    })
+
+    afterAll(async () => {
+      if (selfApplicationId) {
+        await db.delete(applications).where(eq(applications.id, selfApplicationId))
+      }
+      await db.delete(users).where(eq(users.id, otherDeptTeacherId))
+    })
+
+    it('管理员的待审批列表不含其他院系的申请', async () => {
+      const response = await app.inject({
+        method: 'GET',
+        url: '/api/applications/pending',
+        headers: adminHeaders,
+      })
+      expect(response.statusCode).toBe(200)
+      const pending = response.json<ApplicationRecord[]>()
+      expect(pending.some((item) => item.id === otherDeptApplicationId)).toBe(false)
+    })
+
+    it('管理员的申请列表不含其他院系的申请', async () => {
+      const result = await listApplications('', adminHeaders)
+      expect(result.items.some((item) => item.id === otherDeptApplicationId)).toBe(false)
+    })
+
+    it('审批其他院系的申请被拒绝（按不存在处理）', async () => {
+      const response = await app.inject({
+        method: 'POST',
+        url: `/api/applications/${otherDeptApplicationId}/review`,
+        headers: adminHeaders,
+        payload: { decision: 'approved', comment: '越权尝试' },
+      })
+      expect(response.statusCode).toBe(404)
+    })
+
+    it('重复审批已处理的申请被拒绝', async () => {
+      const approved = (await listApplications('?status=approved', adminHeaders)).items[0]!
+      const response = await app.inject({
+        method: 'POST',
+        url: `/api/applications/${approved.id}/review`,
+        headers: adminHeaders,
+        payload: { decision: 'rejected', comment: '试图翻转已通过的申请' },
+      })
+      expect(response.statusCode).toBe(400)
+      expect(response.json<{ message: string }>().message).toContain('已')
+    })
+
+    it('管理员不能审批自己提交的申请', async () => {
+      const created = await app.inject({
+        method: 'POST',
+        url: '/api/applications',
+        headers: adminHeaders,
+        payload: {
+          type: 'leave',
+          originalDate: '2026-09-26',
+          originalSection: '第3-4节',
+          reason: '管理员自己提交的申请，用于验证自审拦截',
+        },
+      })
+      expect(created.statusCode).toBe(201)
+      selfApplicationId = created.json<ApplicationRecord>().id
+
+      const response = await app.inject({
+        method: 'POST',
+        url: `/api/applications/${selfApplicationId}/review`,
+        headers: adminHeaders,
+        payload: { decision: 'approved', comment: '自己批自己' },
+      })
+      expect(response.statusCode).toBe(400)
+      expect(response.json<{ message: string }>().message).toContain('自己')
+    })
+
+    it('被拒绝的审批不会改变申请状态', async () => {
+      const before = await listApplications('?status=approved', adminHeaders)
+      await app.inject({
+        method: 'POST',
+        url: `/api/applications/${before.items[0]!.id}/review`,
+        headers: adminHeaders,
+        payload: { decision: 'rejected', comment: '越权翻转尝试' },
+      })
+      const after = await listApplications('?status=approved', adminHeaders)
+      expect(after.total).toBe(before.total)
+    })
+
+    it('看板的待审批计数同样限定在本院系', async () => {
+      const [adminRow] = await db
+        .select({ department: users.department })
+        .from(users)
+        .where(eq(users.username, 'admin'))
+        .limit(1)
+
+      const expectedRows = await db
+        .select({ value: count() })
+        .from(applications)
+        .innerJoin(users, eq(applications.teacherId, users.id))
+        .where(
+          and(eq(applications.status, 'pending'), eq(users.department, adminRow!.department)),
+        )
+      const expected = expectedRows[0]!.value
+
+      const response = await app.inject({
+        method: 'GET',
+        url: '/api/dashboard',
+        headers: adminHeaders,
+      })
+      const dashboard = response.json<{ counters: { pendingApplications: number } }>()
+
+      expect(dashboard.counters.pendingApplications).toBe(expected)
     })
   })
 })

@@ -3,19 +3,21 @@ import { alias } from 'drizzle-orm/pg-core'
 import type { FastifyInstance } from 'fastify'
 
 import {
+  APPLICATION_STATUS_LABELS,
   type ApplicationRecord,
   type ApplicationStatus,
   type ApplicationType,
   applicationCreateSchema,
   applicationQuerySchema,
   applicationReviewSchema,
+  idParamSchema,
   type Paginated,
 } from '@tw/shared'
 
 import { db } from '../db/client'
 import { applications, classGroups, courses, teachingTasks, users } from '../db/schema'
 import { assertRole, requireAuth } from '../plugins/auth'
-import { notFound, parseOrThrow } from '../utils/http'
+import { badRequest, notFound, parseOrThrow } from '../utils/http'
 
 const reviewerUsers = alias(users, 'reviewer_users')
 
@@ -68,6 +70,23 @@ function baseQuery() {
     .leftJoin(reviewerUsers, eq(applications.reviewerId, reviewerUsers.id))
 }
 
+async function currentUserDepartment(userId: string): Promise<string> {
+  const [row] = await db
+    .select({ department: users.department })
+    .from(users)
+    .where(eq(users.id, userId))
+    .limit(1)
+  if (!row) throw notFound('用户不存在')
+  return row.department
+}
+
+function applicationCountQuery() {
+  return db
+    .select({ value: count() })
+    .from(applications)
+    .innerJoin(users, eq(applications.teacherId, users.id))
+}
+
 export async function applicationRoutes(app: FastifyInstance): Promise<void> {
   app.addHook('preHandler', requireAuth)
 
@@ -76,10 +95,10 @@ export async function applicationRoutes(app: FastifyInstance): Promise<void> {
     const isAdmin = request.currentUser.role === 'dept_admin'
     const onlyMine = query.mine === true || !isAdmin
 
-    const filters = []
-    if (onlyMine) filters.push(eq(applications.teacherId, request.currentUser.sub))
-    if (query.status) filters.push(eq(applications.status, query.status))
-    const where = filters.length > 0 ? and(...filters) : undefined
+    const scope = onlyMine
+      ? eq(applications.teacherId, request.currentUser.sub)
+      : eq(users.department, await currentUserDepartment(request.currentUser.sub))
+    const where = query.status ? and(scope, eq(applications.status, query.status)) : scope
 
     const [rows, totalRow] = await Promise.all([
       baseQuery()
@@ -87,7 +106,7 @@ export async function applicationRoutes(app: FastifyInstance): Promise<void> {
         .orderBy(desc(applications.createdAt))
         .limit(query.pageSize)
         .offset((query.page - 1) * query.pageSize),
-      db.select({ value: count() }).from(applications).where(where),
+      applicationCountQuery().where(where),
     ])
 
     return {
@@ -100,11 +119,14 @@ export async function applicationRoutes(app: FastifyInstance): Promise<void> {
 
   app.get('/pending', async (request): Promise<ApplicationRecord[]> => {
     const isAdmin = request.currentUser.role === 'dept_admin'
-    const where = isAdmin
-      ? eq(applications.status, 'pending')
-      : and(eq(applications.status, 'pending'), eq(applications.teacherId, request.currentUser.sub))
+    const scope = isAdmin
+      ? eq(users.department, await currentUserDepartment(request.currentUser.sub))
+      : eq(applications.teacherId, request.currentUser.sub)
 
-    const rows = await baseQuery().where(where).orderBy(asc(applications.createdAt)).limit(50)
+    const rows = await baseQuery()
+      .where(and(scope, eq(applications.status, 'pending')))
+      .orderBy(asc(applications.createdAt))
+      .limit(50)
     return rows.map(toApplication)
   })
 
@@ -142,11 +164,28 @@ export async function applicationRoutes(app: FastifyInstance): Promise<void> {
 
   app.post('/:id/review', async (request): Promise<ApplicationRecord> => {
     assertRole(request, 'dept_admin')
-    const { id } = request.params as { id: string }
+    const { id } = parseOrThrow(idParamSchema, request.params)
     const input = parseOrThrow(applicationReviewSchema, request.body)
 
     const [existing] = await db.select().from(applications).where(eq(applications.id, id)).limit(1)
     if (!existing) throw notFound('申请不存在')
+
+    if (existing.teacherId === request.currentUser.sub) {
+      throw badRequest('不能审批自己提交的申请')
+    }
+    if (existing.status !== 'pending') {
+      const label =
+        APPLICATION_STATUS_LABELS[existing.status as ApplicationStatus] ?? existing.status
+      throw badRequest(`该申请已是「${label}」状态，不能重复审批`)
+    }
+
+    const [applicant] = await db
+      .select({ department: users.department })
+      .from(users)
+      .where(eq(users.id, existing.teacherId))
+      .limit(1)
+    const department = await currentUserDepartment(request.currentUser.sub)
+    if (!applicant || applicant.department !== department) throw notFound('申请不存在')
 
     await db
       .update(applications)
