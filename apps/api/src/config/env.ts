@@ -24,14 +24,19 @@ export function loadEnv(): void {
 
 loadEnv()
 
-function required(name: string, fallback?: string): string {
-  const value = process.env[name] ?? fallback
-  if (!value) {
-    throw new Error(
-      `缺少必需的环境变量 ${name}。请复制仓库根目录的 .env.example 为 .env 后再启动。`,
-    )
+export const DEV_JWT_SECRET_DEFAULT = 'teacher-workbench-dev-secret-change-me'
+
+export function resolveJwtSecret(configured: string | undefined, isProduction: boolean): string {
+  const value = configured?.trim()
+  if (isProduction) {
+    if (!value || value === DEV_JWT_SECRET_DEFAULT) {
+      throw new Error(
+        '生产环境必须配置独立的 JWT_SECRET：当前未配置，或仍在使用示例中的默认值。请设置一个随机且保密的密钥后重启。',
+      )
+    }
+    return value
   }
-  return value
+  return value || DEV_JWT_SECRET_DEFAULT
 }
 
 const isTest = process.env.NODE_ENV === 'test'
@@ -46,7 +51,7 @@ export const env = {
   port: Number(process.env.PORT ?? 3000),
   host: process.env.HOST ?? '127.0.0.1',
   corsOrigin: process.env.CORS_ORIGIN ?? 'http://localhost:5173',
-  jwtSecret: required('JWT_SECRET', 'teacher-workbench-dev-secret-change-me'),
+  jwtSecret: resolveJwtSecret(process.env.JWT_SECRET, process.env.NODE_ENV === 'production'),
   jwtExpiresIn: process.env.JWT_EXPIRES_IN ?? '12h',
   /** 测试环境自动切到测试库，避免污染开发数据 */
   databaseUrl: isTest
