@@ -4,6 +4,7 @@ import { Spin } from 'antd'
 import { Navigate, Outlet, Route, Routes, useLocation } from 'react-router-dom'
 
 import { AppLayout } from '@/components/AppLayout'
+import { ErrorBoundary } from '@/components/ErrorBoundary'
 import { useAuth } from '@/auth/AuthContext'
 
 const AchievementPage = lazy(() =>
@@ -56,8 +57,9 @@ function RequireAuth(): React.ReactNode {
 
 export default function App(): React.ReactNode {
   return (
-    <Suspense fallback={<PageLoading />}>
-      <Routes>
+    <ErrorBoundary>
+      <Suspense fallback={<PageLoading />}>
+        <Routes>
         <Route path="/login" element={<LoginPage />} />
 
         <Route element={<RequireAuth />}>
@@ -74,6 +76,7 @@ export default function App(): React.ReactNode {
           </Route>
         </Route>
       </Routes>
-    </Suspense>
+      </Suspense>
+    </ErrorBoundary>
   )
 }
