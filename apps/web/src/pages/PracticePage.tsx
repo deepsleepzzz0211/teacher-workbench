@@ -35,6 +35,7 @@ import {
 import { getErrorMessage } from '@/api/client'
 import { practiceApi } from '@/api/endpoints'
 import { PageHeader, StatCard } from '@/components/PageHeader'
+import { useUnsavedChanges } from '@/hooks/useUnsavedChanges'
 import { formatDate } from '@/utils/format'
 
 type Columns<T> = NonNullable<TableProps<T>['columns']>
@@ -53,6 +54,7 @@ export function PracticePage(): React.ReactNode {
 
   const [modalOpen, setModalOpen] = useState(false)
   const [form] = Form.useForm<PracticeFormValues>()
+  const guard = useUnsavedChanges(form)
 
   const progressQuery = useQuery({ queryKey: ['practices'], queryFn: practiceApi.progress })
 
@@ -245,7 +247,7 @@ export function PracticePage(): React.ReactNode {
       <Modal
         title="登记实践经历"
         open={modalOpen}
-        onCancel={() => setModalOpen(false)}
+        onCancel={() => guard.requestClose(() => setModalOpen(false))}
         onOk={submit}
         confirmLoading={createMutation.isPending}
         okText="保存"
@@ -286,6 +288,8 @@ export function PracticePage(): React.ReactNode {
           </Form.Item>
         </Form>
       </Modal>
+
+      {guard.confirmNode}
     </Flex>
   )
 }

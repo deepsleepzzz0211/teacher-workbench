@@ -44,6 +44,7 @@ import { achievementApi } from '@/api/endpoints'
 import { EChart } from '@/components/EChart'
 import { PageHeader, StatCard } from '@/components/PageHeader'
 import { LevelTag } from '@/components/tags'
+import { useUnsavedChanges } from '@/hooks/useUnsavedChanges'
 import { formatDate } from '@/utils/format'
 
 type Columns<T> = NonNullable<TableProps<T>['columns']>
@@ -81,6 +82,7 @@ export function AchievementPage(): React.ReactNode {
   const [editing, setEditing] = useState<Achievement | null>(null)
   const [selectedLevel, setSelectedLevel] = useState<AchievementLevel>('provincial')
   const [form] = Form.useForm<AchievementFormValues>()
+  const guard = useUnsavedChanges(form)
 
   const listQuery = useQuery({
     queryKey: ['achievements', 'list', category, level, range?.[0]?.format('YYYY-MM-DD'), range?.[1]?.format('YYYY-MM-DD'), page, pageSize],
@@ -424,7 +426,7 @@ export function AchievementPage(): React.ReactNode {
       <Modal
         title={editing ? '编辑成果' : '登记新成果'}
         open={modalOpen}
-        onCancel={() => setModalOpen(false)}
+        onCancel={() => guard.requestClose(() => setModalOpen(false))}
         onOk={submit}
         confirmLoading={createMutation.isPending || updateMutation.isPending}
         okText="保存"
@@ -489,6 +491,8 @@ export function AchievementPage(): React.ReactNode {
           </Row>
         </Form>
       </Modal>
+
+      {guard.confirmNode}
     </Flex>
   )
 }

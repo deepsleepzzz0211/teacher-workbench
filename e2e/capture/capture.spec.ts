@@ -62,6 +62,7 @@ test('采集全部页面截图', async ({ page }) => {
   await page.waitForTimeout(400)
   await page.screenshot({ path: resolve(outputDir, '09-workload-calc-preview.png') })
   await page.getByRole('button', { name: /取\s*消/ }).click()
+  await page.getByRole('button', { name: /放弃修改/ }).click()
 
   await page.getByRole('button', { name: '新增其它工作量' }).click()
   await expect(page.getByRole('dialog')).toBeVisible()

@@ -36,6 +36,7 @@ import { getErrorMessage } from '@/api/client'
 import { todoApi } from '@/api/endpoints'
 import { PageHeader, StatCard } from '@/components/PageHeader'
 import { TodoPriorityTag } from '@/components/tags'
+import { useUnsavedChanges } from '@/hooks/useUnsavedChanges'
 import { formatDate } from '@/utils/format'
 
 type Columns<T> = NonNullable<TableProps<T>['columns']>
@@ -65,6 +66,7 @@ export function TodoPage(): React.ReactNode {
   const [filter, setFilter] = useState<string>('all')
   const [modalOpen, setModalOpen] = useState(false)
   const [form] = Form.useForm<TodoFormValues>()
+  const guard = useUnsavedChanges(form)
 
   const status: TodoStatus | undefined = filter === 'all' ? undefined : (filter as TodoStatus)
 
@@ -275,7 +277,7 @@ export function TodoPage(): React.ReactNode {
       <Modal
         title="新增待办"
         open={modalOpen}
-        onCancel={() => setModalOpen(false)}
+        onCancel={() => guard.requestClose(() => setModalOpen(false))}
         onOk={submit}
         confirmLoading={createMutation.isPending}
         okText="保存"
@@ -297,6 +299,8 @@ export function TodoPage(): React.ReactNode {
           </Form.Item>
         </Form>
       </Modal>
+
+      {guard.confirmNode}
     </Flex>
   )
 }

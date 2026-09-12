@@ -51,6 +51,7 @@ import { getErrorMessage } from '@/api/client'
 import { catalogApi, workloadApi } from '@/api/endpoints'
 import { EChart } from '@/components/EChart'
 import { PageHeader, StatCard } from '@/components/PageHeader'
+import { useUnsavedChanges } from '@/hooks/useUnsavedChanges'
 
 type Columns<T> = NonNullable<TableProps<T>['columns']>
 
@@ -126,6 +127,9 @@ export function WorkloadPage(): React.ReactNode {
 
   const [taskForm] = Form.useForm<TaskFormValues>()
   const [itemForm] = Form.useForm<ItemFormValues>()
+
+  const taskGuard = useUnsavedChanges(taskForm)
+  const itemGuard = useUnsavedChanges(itemForm)
 
   const termsQuery = useQuery({ queryKey: ['catalog', 'terms'], queryFn: catalogApi.terms })
   const coursesQuery = useQuery({ queryKey: ['catalog', 'courses'], queryFn: catalogApi.courses })
@@ -665,7 +669,7 @@ export function WorkloadPage(): React.ReactNode {
       <Modal
         title={editingTask ? '编辑授课任务' : '新增授课任务'}
         open={taskModalOpen}
-        onCancel={() => setTaskModalOpen(false)}
+        onCancel={() => taskGuard.requestClose(() => setTaskModalOpen(false))}
         onOk={submitTask}
         confirmLoading={createTask.isPending || updateTask.isPending}
         okText="保存"
@@ -819,7 +823,7 @@ export function WorkloadPage(): React.ReactNode {
       <Modal
         title="新增其它工作量"
         open={itemModalOpen}
-        onCancel={() => setItemModalOpen(false)}
+        onCancel={() => itemGuard.requestClose(() => setItemModalOpen(false))}
         onOk={submitItem}
         confirmLoading={createItem.isPending}
         okText="保存"
@@ -886,6 +890,9 @@ export function WorkloadPage(): React.ReactNode {
           </Card>
         </Form>
       </Modal>
+
+      {taskGuard.confirmNode}
+      {itemGuard.confirmNode}
     </Flex>
   )
 }

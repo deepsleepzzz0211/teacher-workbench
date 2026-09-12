@@ -39,6 +39,7 @@ import { applicationApi, workloadApi } from '@/api/endpoints'
 import { useAuth } from '@/auth/AuthContext'
 import { PageHeader } from '@/components/PageHeader'
 import { ApplicationStatusTag } from '@/components/tags'
+import { useUnsavedChanges } from '@/hooks/useUnsavedChanges'
 import { formatDate } from '@/utils/format'
 
 type Columns<T> = NonNullable<TableProps<T>['columns']>
@@ -70,6 +71,7 @@ function MyApplications(): React.ReactNode {
   const [modalOpen, setModalOpen] = useState(false)
   const [type, setType] = useState<ApplicationType>('adjust_class')
   const [form] = Form.useForm<ApplicationFormValues>()
+  const guard = useUnsavedChanges(form)
 
   const status = statusFilter === 'all' ? undefined : (statusFilter as ApplicationStatus)
 
@@ -217,7 +219,7 @@ function MyApplications(): React.ReactNode {
       <Modal
         title="发起调课 / 请假申请"
         open={modalOpen}
-        onCancel={() => setModalOpen(false)}
+        onCancel={() => guard.requestClose(() => setModalOpen(false))}
         onOk={submit}
         confirmLoading={createMutation.isPending}
         okText="提交申请"
@@ -288,12 +290,14 @@ function MyApplications(): React.ReactNode {
           </Form.Item>
         </Form>
       </Modal>
+
+      {guard.confirmNode}
     </Flex>
   )
 }
 
 function PendingApprovals(): React.ReactNode {
-  const { message } = AntApp.useApp()
+  const { message, modal } = AntApp.useApp()
   const queryClient = useQueryClient()
 
   const [reviewTarget, setReviewTarget] = useState<{ record: ApplicationRecord; decision: 'approved' | 'rejected' } | null>(
@@ -408,7 +412,23 @@ function PendingApprovals(): React.ReactNode {
       <Modal
         title={reviewTarget?.decision === 'approved' ? '通过申请' : '驳回申请'}
         open={reviewTarget !== null}
-        onCancel={() => setReviewTarget(null)}
+        onCancel={() => {
+          if (comment.trim().length === 0) {
+            setReviewTarget(null)
+            return
+          }
+          modal.confirm({
+            title: '放弃未保存的审批意见？',
+            content: '已填写的审批意见尚未提交，关闭后将会丢失。',
+            okText: '放弃意见',
+            cancelText: '继续编辑',
+            okButtonProps: { danger: true },
+            onOk: () => {
+              setComment('')
+              setReviewTarget(null)
+            },
+          })
+        }}
         onOk={() => {
           if (!reviewTarget) return
           reviewMutation.mutate({

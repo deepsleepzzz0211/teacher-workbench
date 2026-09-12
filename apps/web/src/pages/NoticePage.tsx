@@ -34,6 +34,7 @@ import { getErrorMessage } from '@/api/client'
 import { noticeApi } from '@/api/endpoints'
 import { useAuth } from '@/auth/AuthContext'
 import { PageHeader } from '@/components/PageHeader'
+import { useUnsavedChanges } from '@/hooks/useUnsavedChanges'
 
 interface NoticeFormValues {
   title: string
@@ -57,6 +58,7 @@ export function NoticePage(): React.ReactNode {
   const [active, setActive] = useState<Notice | null>(null)
   const [publishOpen, setPublishOpen] = useState(false)
   const [form] = Form.useForm<NoticeFormValues>()
+  const guard = useUnsavedChanges(form)
 
   const listQuery = useQuery({
     queryKey: ['notices', page, pageSize],
@@ -216,7 +218,7 @@ export function NoticePage(): React.ReactNode {
       <Modal
         title="发布通知"
         open={publishOpen}
-        onCancel={() => setPublishOpen(false)}
+        onCancel={() => guard.requestClose(() => setPublishOpen(false))}
         onOk={submitPublish}
         confirmLoading={publishMutation.isPending}
         okText="发布"
@@ -253,6 +255,8 @@ export function NoticePage(): React.ReactNode {
           </Form.Item>
         </Form>
       </Modal>
+
+      {guard.confirmNode}
     </Flex>
   )
 }
