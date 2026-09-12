@@ -1,0 +1,16 @@
+import {
+  ACHIEVEMENT_CATEGORIES,
+  ACHIEVEMENT_CATEGORY_LABELS,
+  ACHIEVEMENT_LEVEL_LABELS,
+  ACHIEVEMENT_LEVELS,
+} from '@tw/shared'
+
+export const CATEGORY_OPTIONS = ACHIEVEMENT_CATEGORIES.map((value) => ({
+  label: ACHIEVEMENT_CATEGORY_LABELS[value],
+  value,
+}))
+
+export const LEVEL_OPTIONS = ACHIEVEMENT_LEVELS.map((value) => ({
+  label: ACHIEVEMENT_LEVEL_LABELS[value],
+  value,
+}))
