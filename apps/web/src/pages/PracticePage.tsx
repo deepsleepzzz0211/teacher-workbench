@@ -7,15 +7,12 @@ import {
   App as AntApp,
   Button,
   Card,
-  Col,
   DatePicker,
   Flex,
   Form,
   Input,
   InputNumber,
-  Modal,
   Progress,
-  Row,
   Skeleton,
   Space,
   Table,
@@ -23,7 +20,6 @@ import {
   Tooltip,
   Typography,
 } from 'antd'
-import type { TableProps } from 'antd'
 import type { Dayjs } from 'dayjs'
 
 import {
@@ -35,10 +31,9 @@ import {
 import { getErrorMessage } from '@/api/client'
 import { practiceApi } from '@/api/endpoints'
 import { PageHeader, StatCard } from '@/components/PageHeader'
+import { type Columns, FormModal, StatRow, useConfirmDelete } from '@/components/blocks'
 import { useUnsavedChanges } from '@/hooks/useUnsavedChanges'
 import { formatDate } from '@/utils/format'
-
-type Columns<T> = NonNullable<TableProps<T>['columns']>
 
 interface PracticeFormValues {
   company: string
@@ -49,7 +44,8 @@ interface PracticeFormValues {
 }
 
 export function PracticePage(): React.ReactNode {
-  const { message, modal } = AntApp.useApp()
+  const { message } = AntApp.useApp()
+  const confirmDelete = useConfirmDelete()
   const queryClient = useQueryClient()
 
   const [modalOpen, setModalOpen] = useState(false)
@@ -104,13 +100,10 @@ export function PracticePage(): React.ReactNode {
   }
 
   const confirmRemove = (record: EnterprisePractice): void => {
-    modal.confirm({
+    confirmDelete({
       title: '删除企业实践记录',
       content: `确定删除「${record.company}」的实践记录吗？删除后累计天数会同步减少。`,
-      okText: '删除',
-      okButtonProps: { danger: true },
-      cancelText: '取消',
-      onOk: () => removeMutation.mutateAsync(record.id),
+      onConfirm: () => removeMutation.mutateAsync(record.id),
     })
   }
 
@@ -184,32 +177,26 @@ export function PracticePage(): React.ReactNode {
         }
       />
 
-      <Row gutter={[16, 16]}>
-        <Col xs={24} sm={8}>
-          <StatCard
-            title="近 5 年累计实践"
-            value={progress?.accumulatedDays ?? 0}
-            suffix="天"
-            tone="primary"
-          />
-        </Col>
-        <Col xs={24} sm={8}>
-          <StatCard
-            title="达标率"
-            value={`${(rate * 100).toFixed(1)}%`}
-            tone={rate >= 1 ? 'success' : 'warning'}
-            status={rate >= 1 ? <Tag color="success">已满足</Tag> : <Tag color="warning">进行中</Tag>}
-          />
-        </Col>
-        <Col xs={24} sm={8}>
-          <StatCard
-            title="还差天数"
-            value={progress?.remainingDays ?? PRACTICE_REQUIRED_DAYS}
-            suffix="天"
-            tone={progress && progress.remainingDays > 0 ? 'warning' : 'success'}
-          />
-        </Col>
-      </Row>
+      <StatRow>
+        <StatCard
+          title="近 5 年累计实践"
+          value={progress?.accumulatedDays ?? 0}
+          suffix="天"
+          tone="primary"
+        />
+        <StatCard
+          title="达标率"
+          value={`${(rate * 100).toFixed(1)}%`}
+          tone={rate >= 1 ? 'success' : 'warning'}
+          status={rate >= 1 ? <Tag color="success">已满足</Tag> : <Tag color="warning">进行中</Tag>}
+        />
+        <StatCard
+          title="还差天数"
+          value={progress?.remainingDays ?? PRACTICE_REQUIRED_DAYS}
+          suffix="天"
+          tone={progress && progress.remainingDays > 0 ? 'warning' : 'success'}
+        />
+      </StatRow>
 
       <Card title="政策要求达成进度">
         {progressQuery.isLoading ? (
@@ -244,50 +231,46 @@ export function PracticePage(): React.ReactNode {
         />
       </Card>
 
-      <Modal
+      <FormModal
         title="登记实践经历"
         open={modalOpen}
-        onCancel={() => guard.requestClose(() => setModalOpen(false))}
-        onOk={submit}
-        confirmLoading={createMutation.isPending}
-        okText="保存"
-        cancelText="取消"
+        onClose={() => guard.requestClose(() => setModalOpen(false))}
+        onSubmit={submit}
+        submitting={createMutation.isPending}
         width={620}
-        destroyOnHidden
+        form={form}
       >
-        <Form<PracticeFormValues> form={form} layout="vertical">
-          <Form.Item
-            name="company"
-            label="企业名称"
-            rules={[
-              { required: true, message: '请填写企业名称' },
-              { min: 2, message: '企业名称至少 2 个字' },
-            ]}
-          >
-            <Input placeholder="例如 宁波海天精工股份有限公司" />
-          </Form.Item>
-          <Form.Item name="position" label="实践岗位" rules={[{ required: true, message: '请填写实践岗位' }]}>
-            <Input placeholder="例如 数控工艺工程师" />
-          </Form.Item>
-          <Form.Item name="range" label="实践起止日期" rules={[{ required: true, message: '请选择实践起止日期' }]}>
-            <DatePicker.RangePicker style={{ width: '100%' }} placeholder={['开始日期', '结束日期']} />
-          </Form.Item>
-          <Form.Item
-            label="实践天数"
-            extra="留空则按起止日期（含首尾）自动计算；如实践非连续，可手工填写实际天数"
-          >
-            <Space.Compact style={{ width: '100%' }}>
-              <Form.Item name="days" noStyle>
-                <InputNumber min={1} max={1000} style={{ width: '100%' }} placeholder="选填" />
-              </Form.Item>
-              <Space.Addon>天</Space.Addon>
-            </Space.Compact>
-          </Form.Item>
-          <Form.Item name="description" label="实践内容">
-            <Input.TextArea rows={3} placeholder="例如 参与加工中心工艺编制与夹具设计，形成教学案例 2 个" />
-          </Form.Item>
-        </Form>
-      </Modal>
+        <Form.Item
+          name="company"
+          label="企业名称"
+          rules={[
+            { required: true, message: '请填写企业名称' },
+            { min: 2, message: '企业名称至少 2 个字' },
+          ]}
+        >
+          <Input placeholder="例如 宁波海天精工股份有限公司" />
+        </Form.Item>
+        <Form.Item name="position" label="实践岗位" rules={[{ required: true, message: '请填写实践岗位' }]}>
+          <Input placeholder="例如 数控工艺工程师" />
+        </Form.Item>
+        <Form.Item name="range" label="实践起止日期" rules={[{ required: true, message: '请选择实践起止日期' }]}>
+          <DatePicker.RangePicker style={{ width: '100%' }} placeholder={['开始日期', '结束日期']} />
+        </Form.Item>
+        <Form.Item
+          label="实践天数"
+          extra="留空则按起止日期（含首尾）自动计算；如实践非连续，可手工填写实际天数"
+        >
+          <Space.Compact style={{ width: '100%' }}>
+            <Form.Item name="days" noStyle>
+              <InputNumber min={1} max={1000} style={{ width: '100%' }} placeholder="选填" />
+            </Form.Item>
+            <Space.Addon>天</Space.Addon>
+          </Space.Compact>
+        </Form.Item>
+        <Form.Item name="description" label="实践内容">
+          <Input.TextArea rows={3} placeholder="例如 参与加工中心工艺编制与夹具设计，形成教学案例 2 个" />
+        </Form.Item>
+      </FormModal>
 
       {guard.confirmNode}
     </Flex>
