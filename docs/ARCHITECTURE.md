@@ -11,7 +11,8 @@ teacher-workbench/
 │  └─ shared/       Zod 契约与共享类型（前后端唯一事实来源）
 ├─ e2e/             Playwright 端到端测试
 ├─ docs/            需求与设计文档
-└─ .scratch/        工单（本地文件模式的 issue tracker）
+├─ .scratch/        工单（本地文件模式的 issue tracker）
+└─ AGENTS.md        给协作 agent 的约定与工单规则
 ```
 
 **为什么把契约放进 `packages/shared`**：前后端共用同一份 Zod Schema，后端的请求校验与前端表单校验、TypeScript 类型全部从它推导，避免"接口文档与实现漂移"。这是本项目唯一的事实来源。

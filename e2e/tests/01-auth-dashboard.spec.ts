@@ -65,4 +65,29 @@ test.describe('登录与工作台首页', () => {
     await expect(page).toHaveURL(/\/login$/)
     await expect(page.getByPlaceholder('例如 t1001')).toBeVisible()
   })
+
+  test('可以用键盘聚焦账户菜单并展开', async ({ page }) => {
+    await login(page)
+
+    const trigger = page.getByTestId('user-menu')
+    await trigger.focus()
+    await expect(trigger).toBeFocused()
+
+    await page.keyboard.press('Enter')
+
+    await expect(page.getByRole('menuitem', { name: '退出登录' })).toBeVisible()
+  })
+
+  test('通知列表可以用键盘打开详情', async ({ page }) => {
+    await login(page)
+    await page.getByRole('menuitem', { name: '通知公告' }).click()
+
+    const row = page.getByRole('button', { name: /关于开展 2026 年度/ })
+    await expect(row).toBeVisible()
+    await row.focus()
+    await expect(row).toBeFocused()
+
+    await page.keyboard.press('Enter')
+    await expect(page.getByText(/各二级学院/).first()).toBeVisible()
+  })
 })

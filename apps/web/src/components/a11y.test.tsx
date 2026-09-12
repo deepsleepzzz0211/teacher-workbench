@@ -87,16 +87,16 @@ describe('键盘可达性：账户菜单', () => {
     expect(trigger).toHaveAttribute('type', 'button')
   })
 
-  it('账户菜单可被键盘聚焦，并用回车展开后可选择退出登录', async () => {
+  it('账户菜单展开后的菜单项可被键盘聚焦', async () => {
     renderLayout()
 
     const trigger = screen.getByTestId('user-menu')
     trigger.focus()
-    expect(trigger).toHaveFocus()
-
     await userEvent.keyboard('{Enter}')
 
-    expect(await screen.findByText('退出登录')).toBeInTheDocument()
+    const logoutItem = await screen.findByRole('menuitem', { name: /退出登录/ })
+    logoutItem.focus()
+    expect(logoutItem).toHaveFocus()
   })
 })
 
