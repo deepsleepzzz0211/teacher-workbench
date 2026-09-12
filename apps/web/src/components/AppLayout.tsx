@@ -16,6 +16,7 @@ import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '@/auth/AuthContext'
 import { ROLE_LABELS } from '@tw/shared'
 import { SIDER_BG } from '@/theme'
+import { ErrorBoundary } from '@/components/ErrorBoundary'
 
 const { Header, Sider, Content } = Layout
 
@@ -126,7 +127,9 @@ export function AppLayout(): React.ReactNode {
 
         <Content style={{ padding: 24 }}>
           <div style={{ maxWidth: 1360, margin: '0 auto' }}>
-            <Outlet />
+            <ErrorBoundary key={location.pathname} onReset={() => navigate('/')}>
+              <Outlet />
+            </ErrorBoundary>
           </div>
         </Content>
       </Layout>
