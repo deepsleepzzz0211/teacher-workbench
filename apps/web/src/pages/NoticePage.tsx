@@ -13,7 +13,6 @@ import {
   Form,
   Input,
   List,
-  Modal,
   Pagination,
   Select,
   Skeleton,
@@ -34,6 +33,7 @@ import { getErrorMessage } from '@/api/client'
 import { noticeApi } from '@/api/endpoints'
 import { useAuth } from '@/auth/AuthContext'
 import { PageHeader } from '@/components/PageHeader'
+import { FormModal } from '@/components/blocks'
 import { useUnsavedChanges } from '@/hooks/useUnsavedChanges'
 
 interface NoticeFormValues {
@@ -230,46 +230,43 @@ export function NoticePage(): React.ReactNode {
         ) : null}
       </Drawer>
 
-      <Modal
+      <FormModal
         title="发布通知"
         open={publishOpen}
-        onCancel={() => guard.requestClose(() => setPublishOpen(false))}
-        onOk={submitPublish}
-        confirmLoading={publishMutation.isPending}
+        onClose={() => guard.requestClose(() => setPublishOpen(false))}
+        onSubmit={submitPublish}
+        submitting={publishMutation.isPending}
         okText="发布"
-        cancelText="取消"
         width={680}
-        destroyOnHidden
+        form={form}
       >
-        <Form<NoticeFormValues> form={form} layout="vertical">
-          <Form.Item
-            name="title"
-            label="通知标题"
-            rules={[
-              { required: true, message: '请填写通知标题' },
-              { min: 2, message: '标题至少 2 个字' },
-            ]}
-          >
-            <Input placeholder="例如 关于开展本学期期终教学检查的通知" />
-          </Form.Item>
-          <Form.Item name="category" label="通知类别" rules={[{ required: true, message: '请选择通知类别' }]}>
-            <Select options={CATEGORY_OPTIONS} />
-          </Form.Item>
-          <Form.Item
-            name="content"
-            label="通知正文"
-            rules={[
-              { required: true, message: '请填写通知正文' },
-              { min: 2, message: '正文至少 2 个字' },
-            ]}
-          >
-            <Input.TextArea rows={8} placeholder="支持多行文本，换行会原样保留" />
-          </Form.Item>
-          <Form.Item name="isTop" label="是否置顶" valuePropName="checked">
-            <Switch />
-          </Form.Item>
-        </Form>
-      </Modal>
+        <Form.Item
+          name="title"
+          label="通知标题"
+          rules={[
+            { required: true, message: '请填写通知标题' },
+            { min: 2, message: '标题至少 2 个字' },
+          ]}
+        >
+          <Input placeholder="例如 关于开展本学期期终教学检查的通知" />
+        </Form.Item>
+        <Form.Item name="category" label="通知类别" rules={[{ required: true, message: '请选择通知类别' }]}>
+          <Select options={CATEGORY_OPTIONS} />
+        </Form.Item>
+        <Form.Item
+          name="content"
+          label="通知正文"
+          rules={[
+            { required: true, message: '请填写通知正文' },
+            { min: 2, message: '正文至少 2 个字' },
+          ]}
+        >
+          <Input.TextArea rows={8} placeholder="支持多行文本，换行会原样保留" />
+        </Form.Item>
+        <Form.Item name="isTop" label="是否置顶" valuePropName="checked">
+          <Switch />
+        </Form.Item>
+      </FormModal>
 
       {guard.confirmNode}
     </Flex>
