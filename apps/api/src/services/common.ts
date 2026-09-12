@@ -1,10 +1,10 @@
-import { and, desc, eq } from 'drizzle-orm'
+import { desc, eq } from 'drizzle-orm'
 
 import { MAX_WEEKS, TERM_REQUIRED_HOURS, type Term } from '@tw/shared'
 
 import { db } from '../db/client'
 import { terms } from '../db/schema'
-import { badRequest, notFound } from '../utils/http'
+import { notFound } from '../utils/http'
 
 /** 取当前学期；若库中没有标记 current 的学期，则取最近开始的一个 */
 export async function getCurrentTerm(): Promise<Term> {
@@ -72,22 +72,8 @@ export function addDays(date: Date, days: number): Date {
   return next
 }
 
-/** 校验某条记录属于当前教师，否则 404，避免越权读写 */
-export async function assertOwned(
-  // 传入已查到的记录（含 teacherId）与当前用户
-  found: { teacherId: string } | undefined,
-  userId: string,
-  entityName: string,
-): Promise<void> {
-  if (!found) throw notFound(`${entityName}不存在`)
-  if (found.teacherId !== userId) throw notFound(`${entityName}不存在`)
-}
-
 export function matchesWeekParity(parity: string, week: number): boolean {
   if (parity === 'odd') return week % 2 === 1
   if (parity === 'even') return week % 2 === 0
   return true
 }
-
-export { and, eq }
-export { badRequest }

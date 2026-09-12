@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react'
 
-import { Badge, Card, Flex, Typography } from 'antd'
+import { Card, Flex, Typography } from 'antd'
 
 export function PageHeader({
   title,
@@ -76,8 +76,4 @@ export function StatCard({
       </Flex>
     </Card>
   )
-}
-
-export function UnreadBadge({ count }: { count: number }): ReactNode {
-  return count > 0 ? <Badge count={count} /> : null
 }

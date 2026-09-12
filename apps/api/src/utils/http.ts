@@ -27,8 +27,6 @@ export const forbidden = (message = '没有权限执行该操作'): HttpError =>
 export const notFound = (message = '请求的资源不存在'): HttpError =>
   new HttpError(404, message, 'NOT_FOUND')
 
-export const conflict = (message: string): HttpError => new HttpError(409, message, 'CONFLICT')
-
 /** 解析 zod schema，失败时抛出 400 并带上可读的字段信息 */
 export function parseOrThrow<T>(schema: ZodType<T>, input: unknown): T {
   const result = schema.safeParse(input)

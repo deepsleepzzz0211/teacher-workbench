@@ -2,7 +2,7 @@ import { useCallback } from 'react'
 
 import { App as AntApp } from 'antd'
 
-export interface ConfirmDeleteOptions {
+interface ConfirmDeleteOptions {
   title: string
   content: string
   onConfirm: () => unknown

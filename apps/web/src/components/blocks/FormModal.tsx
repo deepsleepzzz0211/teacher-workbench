@@ -3,7 +3,7 @@ import type { ReactNode } from 'react'
 import { Form, Modal } from 'antd'
 import type { FormInstance } from 'antd'
 
-export interface FormModalProps<T> {
+interface FormModalProps<T> {
   title: string
   open: boolean
   onClose: () => void
