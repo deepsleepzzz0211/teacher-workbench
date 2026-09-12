@@ -58,6 +58,9 @@ jobs:
       - name: 代码规范
         run: pnpm lint
 
+      - name: 未使用依赖检查
+        run: pnpm lint:deps
+
       - name: 单元 / 集成 / 组件测试
         run: pnpm test
 
