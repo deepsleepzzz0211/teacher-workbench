@@ -17,6 +17,7 @@ export default defineConfig({
       TEST_DATABASE_URL,
       JWT_SECRET: 'integration-test-secret',
       CORS_ORIGIN: 'http://localhost:5173',
+      LOGIN_RATE_LIMIT_MAX: '1000',
     },
   },
 })

@@ -25,12 +25,15 @@ export function toAuthUser(row: UserRow): AuthUser {
   }
 }
 
-export async function authRoutes(app: FastifyInstance): Promise<void> {
-  app.post('/login', async (request): Promise<LoginResponse> => {
+export async function authRoutes(
+  app: FastifyInstance,
+  options: { loginLimit: { max: number; timeWindow: string } },
+): Promise<void> {
+  app.post('/login', { config: { rateLimit: options.loginLimit } }, async (request): Promise<LoginResponse> => {
     const input = parseOrThrow(loginSchema, request.body)
 
     const [user] = await db.select().from(users).where(eq(users.username, input.username)).limit(1)
-    if (!user || !verifyPassword(input.password, user.passwordHash)) {
+    if (!user || !(await verifyPassword(input.password, user.passwordHash))) {
       throw unauthorized('用户名或密码不正确')
     }
 

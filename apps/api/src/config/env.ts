@@ -41,6 +41,13 @@ export function resolveJwtSecret(configured: string | undefined, isProduction: b
 
 const isTest = process.env.NODE_ENV === 'test'
 
+export function resolveLoginRateLimit(): { max: number; timeWindow: string } {
+  return {
+    max: Number(process.env.LOGIN_RATE_LIMIT_MAX ?? 10),
+    timeWindow: process.env.LOGIN_RATE_LIMIT_WINDOW ?? '1 minute',
+  }
+}
+
 const DEFAULT_DEV_DB = 'postgres://tw_app:tw_app_pwd_2026@127.0.0.1:5432/teacher_workbench'
 const DEFAULT_TEST_DB = 'postgres://tw_app:tw_app_pwd_2026@127.0.0.1:5432/teacher_workbench_test'
 

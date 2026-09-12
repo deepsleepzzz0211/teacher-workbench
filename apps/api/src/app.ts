@@ -1,8 +1,9 @@
 import cors from '@fastify/cors'
 import jwt from '@fastify/jwt'
+import rateLimit from '@fastify/rate-limit'
 import Fastify, { type FastifyInstance } from 'fastify'
 
-import { env } from './config/env'
+import { env, resolveLoginRateLimit } from './config/env'
 import { achievementRoutes } from './modules/achievement'
 import { applicationRoutes } from './modules/application'
 import { authRoutes } from './modules/auth'
@@ -31,13 +32,17 @@ export async function buildApp(): Promise<FastifyInstance> {
     sign: { expiresIn: env.jwtExpiresIn },
   })
 
+  await app.register(rateLimit, { global: false })
+
   registerErrorHandler(app)
 
   app.get('/health', async () => ({ status: 'ok', env: env.nodeEnv }))
 
+  const loginLimit = resolveLoginRateLimit()
+
   await app.register(
     async (api) => {
-      await api.register(authRoutes, { prefix: '/auth' })
+      await api.register(authRoutes, { prefix: '/auth', loginLimit })
       await api.register(catalogRoutes, { prefix: '/catalog' })
       await api.register(dashboardRoutes, { prefix: '/dashboard' })
       await api.register(scheduleRoutes, { prefix: '/schedule' })
