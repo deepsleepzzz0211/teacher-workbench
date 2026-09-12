@@ -305,6 +305,32 @@ describe('调课 / 请假审批模块', () => {
       expect(response.statusCode).toBe(404)
     })
 
+    it('审批其他院系「已处理」的申请同样按不存在处理，不泄漏其状态', async () => {
+      const [decided] = await db
+        .insert(applications)
+        .values({
+          teacherId: otherDeptTeacherId,
+          type: 'leave',
+          originalDate: '2026-09-27',
+          originalSection: '第1-2节',
+          reason: '其他院系已处理的申请，用于验证已处理状态不会被泄漏',
+          status: 'approved',
+        })
+        .returning({ id: applications.id })
+
+      const response = await app.inject({
+        method: 'POST',
+        url: `/api/applications/${decided!.id}/review`,
+        headers: adminHeaders,
+        payload: { decision: 'rejected', comment: '越权尝试' },
+      })
+
+      expect(response.statusCode).toBe(404)
+      expect(response.json<{ message: string }>().message).not.toContain('已')
+
+      await db.delete(applications).where(eq(applications.id, decided!.id))
+    })
+
     it('重复审批已处理的申请被拒绝', async () => {
       const approved = (await listApplications('?status=approved', adminHeaders)).items[0]!
       const response = await app.inject({

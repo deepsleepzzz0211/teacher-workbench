@@ -173,11 +173,6 @@ export async function applicationRoutes(app: FastifyInstance): Promise<void> {
     if (existing.teacherId === request.currentUser.sub) {
       throw badRequest('不能审批自己提交的申请')
     }
-    if (existing.status !== 'pending') {
-      const label =
-        APPLICATION_STATUS_LABELS[existing.status as ApplicationStatus] ?? existing.status
-      throw badRequest(`该申请已是「${label}」状态，不能重复审批`)
-    }
 
     const [applicant] = await db
       .select({ department: users.department })
@@ -186,6 +181,12 @@ export async function applicationRoutes(app: FastifyInstance): Promise<void> {
       .limit(1)
     const department = await currentUserDepartment(request.currentUser.sub)
     if (!applicant || applicant.department !== department) throw notFound('申请不存在')
+
+    if (existing.status !== 'pending') {
+      const label =
+        APPLICATION_STATUS_LABELS[existing.status as ApplicationStatus] ?? existing.status
+      throw badRequest(`该申请已是「${label}」状态，不能重复审批`)
+    }
 
     await db
       .update(applications)
