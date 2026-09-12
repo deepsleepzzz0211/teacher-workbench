@@ -297,13 +297,14 @@ function MyApplications(): React.ReactNode {
 }
 
 function PendingApprovals(): React.ReactNode {
-  const { message, modal } = AntApp.useApp()
+  const { message } = AntApp.useApp()
   const queryClient = useQueryClient()
 
   const [reviewTarget, setReviewTarget] = useState<{ record: ApplicationRecord; decision: 'approved' | 'rejected' } | null>(
     null,
   )
   const [comment, setComment] = useState('')
+  const reviewGuard = useUnsavedChanges(() => comment.trim().length > 0)
 
   const pendingQuery = useQuery({ queryKey: ['applications', 'pending'], queryFn: applicationApi.pending })
 
@@ -412,23 +413,12 @@ function PendingApprovals(): React.ReactNode {
       <Modal
         title={reviewTarget?.decision === 'approved' ? '通过申请' : '驳回申请'}
         open={reviewTarget !== null}
-        onCancel={() => {
-          if (comment.trim().length === 0) {
+        onCancel={() =>
+          reviewGuard.requestClose(() => {
+            setComment('')
             setReviewTarget(null)
-            return
-          }
-          modal.confirm({
-            title: '放弃未保存的审批意见？',
-            content: '已填写的审批意见尚未提交，关闭后将会丢失。',
-            okText: '放弃意见',
-            cancelText: '继续编辑',
-            okButtonProps: { danger: true },
-            onOk: () => {
-              setComment('')
-              setReviewTarget(null)
-            },
           })
-        }}
+        }
         onOk={() => {
           if (!reviewTarget) return
           reviewMutation.mutate({
@@ -457,6 +447,8 @@ function PendingApprovals(): React.ReactNode {
           </Flex>
         ) : null}
       </Modal>
+
+      {reviewGuard.confirmNode}
     </Flex>
   )
 }

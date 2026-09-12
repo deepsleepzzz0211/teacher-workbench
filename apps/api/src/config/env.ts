@@ -41,7 +41,12 @@ export function resolveJwtSecret(configured: string | undefined, isProduction: b
 
 const isTest = process.env.NODE_ENV === 'test'
 
-export function resolveLoginRateLimit(): { max: number; timeWindow: string } {
+export interface LoginRateLimit {
+  max: number
+  timeWindow: string
+}
+
+export function resolveLoginRateLimit(): LoginRateLimit {
   return {
     max: Number(process.env.LOGIN_RATE_LIMIT_MAX ?? 10),
     timeWindow: process.env.LOGIN_RATE_LIMIT_WINDOW ?? '1 minute',

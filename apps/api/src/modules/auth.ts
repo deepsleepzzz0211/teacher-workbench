@@ -5,6 +5,7 @@ import { type AuthUser, type LoginResponse, loginSchema, type Role } from '@tw/s
 
 import { db } from '../db/client'
 import { users } from '../db/schema'
+import type { LoginRateLimit } from '../config/env'
 import { requireAuth } from '../plugins/auth'
 import { notFound, parseOrThrow, unauthorized } from '../utils/http'
 import { verifyPassword } from '../utils/password'
@@ -27,7 +28,7 @@ export function toAuthUser(row: UserRow): AuthUser {
 
 export async function authRoutes(
   app: FastifyInstance,
-  options: { loginLimit: { max: number; timeWindow: string } },
+  options: { loginLimit: LoginRateLimit },
 ): Promise<void> {
   app.post('/login', { config: { rateLimit: options.loginLimit } }, async (request): Promise<LoginResponse> => {
     const input = parseOrThrow(loginSchema, request.body)

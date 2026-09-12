@@ -228,26 +228,26 @@ export async function workloadRoutes(app: FastifyInstance): Promise<void> {
       remark: input.remark ?? existing.remark,
     }
 
-    parseOrThrow(teachingTaskCreateSchema, merged)
-    await ensureTermCourseClass(merged.termId, merged.courseId, merged.classId)
+    const finalTask = parseOrThrow(teachingTaskCreateSchema, merged)
+    await ensureTermCourseClass(finalTask.termId, finalTask.courseId, finalTask.classId)
 
     await db
       .update(teachingTasks)
       .set({
-        ...(input.termId !== undefined ? { termId: input.termId } : {}),
-        ...(input.courseId !== undefined ? { courseId: input.courseId } : {}),
-        ...(input.classId !== undefined ? { classId: input.classId } : {}),
-        ...(input.location !== undefined ? { location: input.location } : {}),
-        ...(input.weekday !== undefined ? { weekday: input.weekday } : {}),
-        ...(input.startSection !== undefined ? { startSection: input.startSection } : {}),
-        ...(input.endSection !== undefined ? { endSection: input.endSection } : {}),
-        ...(input.weekStart !== undefined ? { weekStart: input.weekStart } : {}),
-        ...(input.weekEnd !== undefined ? { weekEnd: input.weekEnd } : {}),
-        ...(input.weekParity !== undefined ? { weekParity: input.weekParity } : {}),
-        ...(input.totalHours !== undefined ? { totalHours: input.totalHours } : {}),
-        ...(input.studentCount !== undefined ? { studentCount: input.studentCount } : {}),
-        ...(input.repeatIndex !== undefined ? { repeatIndex: input.repeatIndex } : {}),
-        ...(input.remark !== undefined ? { remark: input.remark } : {}),
+        termId: finalTask.termId,
+        courseId: finalTask.courseId,
+        classId: finalTask.classId,
+        location: finalTask.location,
+        weekday: finalTask.weekday,
+        startSection: finalTask.startSection,
+        endSection: finalTask.endSection,
+        weekStart: finalTask.weekStart,
+        weekEnd: finalTask.weekEnd,
+        weekParity: finalTask.weekParity,
+        totalHours: finalTask.totalHours,
+        studentCount: finalTask.studentCount,
+        repeatIndex: finalTask.repeatIndex,
+        remark: finalTask.remark,
       })
       .where(eq(teachingTasks.id, id))
 

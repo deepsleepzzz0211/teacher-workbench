@@ -8,18 +8,25 @@ export interface UnsavedChangesGuard {
   confirmNode: ReactNode
 }
 
-export function useUnsavedChanges(form: FormInstance): UnsavedChangesGuard {
+export type DirtyCheck = FormInstance | (() => boolean)
+
+export function useUnsavedChanges(source: DirtyCheck): UnsavedChangesGuard {
   const [pendingClose, setPendingClose] = useState<(() => void) | null>(null)
+
+  const isDirty = useCallback(
+    (): boolean => (typeof source === 'function' ? source() : source.isFieldsTouched()),
+    [source],
+  )
 
   const requestClose = useCallback(
     (close: () => void) => {
-      if (form.isFieldsTouched()) {
+      if (isDirty()) {
         setPendingClose(() => close)
         return
       }
       close()
     },
-    [form],
+    [isDirty],
   )
 
   const confirmNode = useMemo(

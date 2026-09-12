@@ -17,6 +17,11 @@ import {
 import { db } from '../db/client'
 import { applications, classGroups, courses, teachingTasks, users } from '../db/schema'
 import { assertRole, requireAuth } from '../plugins/auth'
+import {
+  isSameDepartment,
+  resolveApplicationScope,
+  resolveOnlyMine,
+} from '../services/applicationScope'
 import { badRequest, notFound, parseOrThrow } from '../utils/http'
 
 const reviewerUsers = alias(users, 'reviewer_users')
@@ -70,16 +75,6 @@ function baseQuery() {
     .leftJoin(reviewerUsers, eq(applications.reviewerId, reviewerUsers.id))
 }
 
-async function currentUserDepartment(userId: string): Promise<string> {
-  const [row] = await db
-    .select({ department: users.department })
-    .from(users)
-    .where(eq(users.id, userId))
-    .limit(1)
-  if (!row) throw notFound('用户不存在')
-  return row.department
-}
-
 function applicationCountQuery() {
   return db
     .select({ value: count() })
@@ -92,12 +87,13 @@ export async function applicationRoutes(app: FastifyInstance): Promise<void> {
 
   app.get('/', async (request): Promise<Paginated<ApplicationRecord>> => {
     const query = parseOrThrow(applicationQuerySchema, request.query)
-    const isAdmin = request.currentUser.role === 'dept_admin'
-    const onlyMine = query.mine === true || !isAdmin
+    const onlyMine = resolveOnlyMine(request.currentUser.role, query.mine)
 
-    const scope = onlyMine
-      ? eq(applications.teacherId, request.currentUser.sub)
-      : eq(users.department, await currentUserDepartment(request.currentUser.sub))
+    const scope = await resolveApplicationScope({
+      userId: request.currentUser.sub,
+      role: request.currentUser.role,
+      onlyMine,
+    })
     const where = query.status ? and(scope, eq(applications.status, query.status)) : scope
 
     const [rows, totalRow] = await Promise.all([
@@ -118,10 +114,12 @@ export async function applicationRoutes(app: FastifyInstance): Promise<void> {
   })
 
   app.get('/pending', async (request): Promise<ApplicationRecord[]> => {
-    const isAdmin = request.currentUser.role === 'dept_admin'
-    const scope = isAdmin
-      ? eq(users.department, await currentUserDepartment(request.currentUser.sub))
-      : eq(applications.teacherId, request.currentUser.sub)
+    const onlyMine = resolveOnlyMine(request.currentUser.role)
+    const scope = await resolveApplicationScope({
+      userId: request.currentUser.sub,
+      role: request.currentUser.role,
+      onlyMine,
+    })
 
     const rows = await baseQuery()
       .where(and(scope, eq(applications.status, 'pending')))
@@ -174,13 +172,9 @@ export async function applicationRoutes(app: FastifyInstance): Promise<void> {
       throw badRequest('不能审批自己提交的申请')
     }
 
-    const [applicant] = await db
-      .select({ department: users.department })
-      .from(users)
-      .where(eq(users.id, existing.teacherId))
-      .limit(1)
-    const department = await currentUserDepartment(request.currentUser.sub)
-    if (!applicant || applicant.department !== department) throw notFound('申请不存在')
+    if (!(await isSameDepartment(request.currentUser.sub, existing.teacherId))) {
+      throw notFound('申请不存在')
+    }
 
     if (existing.status !== 'pending') {
       const label =

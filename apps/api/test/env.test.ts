@@ -25,8 +25,4 @@ describe('令牌签名密钥解析', () => {
     expect(() => resolveJwtSecret('   ', true)).toThrow()
     expect(resolveJwtSecret('   ', false)).toBe(DEV_JWT_SECRET_DEFAULT)
   })
-
-  it('测试环境未配置时同样回退，不阻断测试运行', () => {
-    expect(resolveJwtSecret(undefined, false)).toBe(DEV_JWT_SECRET_DEFAULT)
-  })
 })

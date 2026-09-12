@@ -26,6 +26,7 @@ import {
   weekOfTerm,
 } from '../services/common'
 import { notFound } from '../utils/http'
+import { resolveApplicationScope, resolveOnlyMine } from '../services/applicationScope'
 import { computeAchievementStats, recentAchievements } from './achievement'
 import { buildPracticeProgress } from './practice'
 import { listItems, listTasks } from './workload'
@@ -76,6 +77,13 @@ export async function dashboardRoutes(app: FastifyInstance): Promise<void> {
     }))
     const todayHours = Math.round(todayTasks.reduce((sum, task) => sum + task.effectiveHours, 0) * 10) / 10
 
+    const applicationScope = await resolveApplicationScope({
+      userId,
+      role: userRow.role,
+      onlyMine: resolveOnlyMine(userRow.role),
+      department: userRow.department,
+    })
+
     const [items, todoRows, todoCountRow, noticeRows, unreadRow, pendingAppRow, achievementStats, achievementRecent, practice] =
       await Promise.all([
         listItems(userId, term.id),
@@ -111,11 +119,7 @@ export async function dashboardRoutes(app: FastifyInstance): Promise<void> {
           .select({ value: count() })
           .from(applications)
           .innerJoin(users, eq(applications.teacherId, users.id))
-          .where(
-            userRow.role === 'dept_admin'
-              ? and(eq(applications.status, 'pending'), eq(users.department, userRow.department))
-              : and(eq(applications.status, 'pending'), eq(applications.teacherId, userId)),
-          ),
+          .where(and(eq(applications.status, 'pending'), applicationScope)),
         computeAchievementStats(userId),
         recentAchievements(userId, 5),
         buildPracticeProgress(userId),
