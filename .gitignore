@@ -1,0 +1,28 @@
+# 依赖与构建产物
+node_modules/
+dist/
+build/
+*.tsbuildinfo
+.vite/
+coverage/
+
+# 环境变量（本仓库为演示项目，保留 .env.example，忽略真实 .env）
+.env
+.env.local
+.env.*.local
+
+# 测试与运行产物
+playwright-report/
+test-results/
+e2e/.auth/
+*.log
+logs/
+
+# 数据库本地数据目录（若使用内置实例）
+.pgdata/
+
+# 编辑器 / 系统
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db

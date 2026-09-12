@@ -1,0 +1,83 @@
+import type { ReactNode } from 'react'
+
+import { Badge, Card, Flex, Typography } from 'antd'
+
+export function PageHeader({
+  title,
+  description,
+  extra,
+}: {
+  title: string
+  description?: string
+  extra?: ReactNode
+}): ReactNode {
+  return (
+    <Flex justify="space-between" align="flex-start" style={{ marginBottom: 20 }} gap={16} wrap>
+      <div>
+        <Typography.Title level={4} style={{ margin: 0 }}>
+          {title}
+        </Typography.Title>
+        {description ? (
+          <Typography.Text type="secondary" style={{ fontSize: 13 }}>
+            {description}
+          </Typography.Text>
+        ) : null}
+      </div>
+      {extra}
+    </Flex>
+  )
+}
+
+export function StatCard({
+  title,
+  value,
+  suffix,
+  prefix,
+  hint,
+  status,
+  tone = 'default',
+}: {
+  title: string
+  value: ReactNode
+  suffix?: ReactNode
+  prefix?: ReactNode
+  hint?: ReactNode
+  status?: ReactNode
+  tone?: 'default' | 'primary' | 'success' | 'warning'
+}): ReactNode {
+  const accent: Record<string, string> = {
+    default: '#1d4ed8',
+    primary: '#1d4ed8',
+    success: '#16a34a',
+    warning: '#d97706',
+  }
+
+  return (
+    <Card size="small" styles={{ body: { padding: 18 } }}>
+      <Flex vertical gap={6}>
+        <Flex justify="space-between" align="center">
+          <Typography.Text type="secondary" style={{ fontSize: 13 }}>
+            {title}
+          </Typography.Text>
+          {status}
+        </Flex>
+        <Typography.Title level={3} style={{ margin: 0, color: accent[tone] }}>
+          {prefix}
+          {value}
+          {suffix ? (
+            <span style={{ fontSize: 14, fontWeight: 400, marginLeft: 6, color: '#64748b' }}>{suffix}</span>
+          ) : null}
+        </Typography.Title>
+        {hint ? (
+          <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+            {hint}
+          </Typography.Text>
+        ) : null}
+      </Flex>
+    </Card>
+  )
+}
+
+export function UnreadBadge({ count }: { count: number }): ReactNode {
+  return count > 0 ? <Badge count={count} /> : null
+}

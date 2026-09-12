@@ -1,0 +1,33 @@
+{
+  "name": "teacher-workbench",
+  "version": "1.0.0",
+  "private": true,
+  "description": "高职院校教师工作台 — 前后端分离（React + Ant Design / Fastify + PostgreSQL 15）",
+  "packageManager": "pnpm@10.30.2",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "setup": "pnpm install && pnpm db:migrate && pnpm db:seed",
+    "db:migrate": "pnpm --filter @tw/api db:migrate",
+    "db:seed": "pnpm --filter @tw/api db:seed",
+    "db:reset": "pnpm --filter @tw/api db:reset",
+    "dev": "concurrently -k -n api,web -c cyan,magenta \"pnpm --filter @tw/api dev\" \"pnpm --filter @tw/web dev\"",
+    "dev:api": "pnpm --filter @tw/api dev",
+    "dev:web": "pnpm --filter @tw/web dev",
+    "build": "pnpm --filter @tw/shared build && pnpm --filter @tw/api build && pnpm --filter @tw/web build",
+    "test": "pnpm --filter @tw/shared test && pnpm --filter @tw/api test && pnpm --filter @tw/web test",
+    "test:api": "pnpm --filter @tw/api test",
+    "test:web": "pnpm --filter @tw/web test",
+    "typecheck": "pnpm -r typecheck",
+    "e2e": "pnpm --filter @tw/e2e test",
+    "e2e:install": "pnpm --filter @tw/e2e install:browsers",
+    "capture": "pnpm --filter @tw/e2e capture"
+  },
+  "devDependencies": {
+    "concurrently": "^9.2.1"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": ["esbuild"]
+  }
+}
