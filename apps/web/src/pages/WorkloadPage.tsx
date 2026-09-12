@@ -1,55 +1,27 @@
 import { useMemo, useState } from 'react'
 
-import { PlusOutlined } from '@ant-design/icons'
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import {
-  Alert,
-  App as AntApp,
-  Button,
-  Card,
-  Col,
-  Flex,
-  Form,
-  Progress,
-  Row,
-  Select,
-  Skeleton,
-  Table,
-  Tag,
-  Typography,
-} from 'antd'
+import { Alert, Flex, Form, Select, Skeleton } from 'antd'
 import dayjs from 'dayjs'
 
-import {
-  TERM_REQUIRED_HOURS,
-  type TeachingTask,
-  type WorkloadItem,
-} from '@tw/shared'
+import { type TeachingTask, type WorkloadItem } from '@tw/shared'
 
 import { getErrorMessage } from '@/api/client'
-import { catalogApi, workloadApi } from '@/api/endpoints'
-import { EChart } from '@/components/EChart'
-import { PageHeader, StatCard } from '@/components/PageHeader'
-import { StatRow, useConfirmDelete } from '@/components/blocks'
+import { PageHeader } from '@/components/PageHeader'
+import { useConfirmDelete } from '@/components/blocks'
 import { useUnsavedChanges } from '@/hooks/useUnsavedChanges'
-import { palette } from '@/theme'
 
 import { buildCourseTypeOption, buildWeeklyOption } from './workload/chartOptions'
 import { buildItemColumns } from './workload/itemColumns'
 import { ItemFormModal, type ItemPreview } from './workload/ItemFormModal'
 import { TaskFormModal } from './workload/TaskFormModal'
 import { buildTaskColumns } from './workload/taskColumns'
-import {
-  EMPTY_TASK_PREVIEW,
-  type ItemFormValues,
-  type TaskFormValues,
-  type TaskPreview,
-} from './workload/types'
+import { EMPTY_TASK_PREVIEW, type ItemFormValues, type TaskFormValues, type TaskPreview } from './workload/types'
+import { useWorkloadData } from './workload/useWorkloadData'
+import { WorkloadSummary } from './workload/WorkloadSummary'
+import { WorkloadTables } from './workload/WorkloadTables'
 
 export function WorkloadPage(): React.ReactNode {
-  const { message } = AntApp.useApp()
   const confirmDelete = useConfirmDelete()
-  const queryClient = useQueryClient()
 
   const [selectedTermId, setSelectedTermId] = useState<string | undefined>(undefined)
   const [taskModalOpen, setTaskModalOpen] = useState(false)
@@ -67,90 +39,43 @@ export function WorkloadPage(): React.ReactNode {
   const taskGuard = useUnsavedChanges(taskForm)
   const itemGuard = useUnsavedChanges(itemForm)
 
-  const termsQuery = useQuery({ queryKey: ['catalog', 'terms'], queryFn: catalogApi.terms })
-  const coursesQuery = useQuery({ queryKey: ['catalog', 'courses'], queryFn: catalogApi.courses })
-  const classesQuery = useQuery({ queryKey: ['catalog', 'classes'], queryFn: catalogApi.classes })
-
-  const termId = selectedTermId ?? termsQuery.data?.find((term) => term.isCurrent)?.id
-  const courses = coursesQuery.data ?? []
-  const classes = classesQuery.data ?? []
-
-  const summaryQuery = useQuery({
-    queryKey: ['workload', 'summary', termId],
-    queryFn: () => workloadApi.summary(termId),
-    enabled: Boolean(termId),
+  const {
+    termsQuery,
+    termId,
+    courses,
+    classes,
+    summaryQuery,
+    tasksQuery,
+    itemsQuery,
+    summary,
+    tasks,
+    items,
+    createTask,
+    updateTask,
+    deleteTask,
+    createItem,
+    deleteItem,
+  } = useWorkloadData({
+    selectedTermId,
+    onTaskSaved: () => setTaskModalOpen(false),
+    onItemSaved: () => setItemModalOpen(false),
   })
-  const tasksQuery = useQuery({
-    queryKey: ['workload', 'tasks', termId],
-    queryFn: () => workloadApi.tasks(termId),
-    enabled: Boolean(termId),
-  })
-  const itemsQuery = useQuery({
-    queryKey: ['workload', 'items', termId],
-    queryFn: () => workloadApi.items(termId),
-    enabled: Boolean(termId),
-  })
-
-  const invalidateWorkload = (): void => {
-    void queryClient.invalidateQueries({ queryKey: ['workload'] })
-    void queryClient.invalidateQueries({ queryKey: ['dashboard'] })
-  }
-
-  const createTask = useMutation({
-    mutationFn: workloadApi.createTask,
-    onSuccess: () => {
-      message.success('授课任务已新增')
-      setTaskModalOpen(false)
-      invalidateWorkload()
-    },
-    onError: (error) => message.error(getErrorMessage(error)),
-  })
-
-  const updateTask = useMutation({
-    mutationFn: ({ id, payload }: { id: string; payload: Partial<TaskFormValues> }) =>
-      workloadApi.updateTask(id, payload),
-    onSuccess: () => {
-      message.success('授课任务已更新')
-      setTaskModalOpen(false)
-      invalidateWorkload()
-    },
-    onError: (error) => message.error(getErrorMessage(error)),
-  })
-
-  const deleteTask = useMutation({
-    mutationFn: workloadApi.deleteTask,
-    onSuccess: () => {
-      message.success('授课任务已删除')
-      invalidateWorkload()
-    },
-    onError: (error) => message.error(getErrorMessage(error)),
-  })
-
-  const createItem = useMutation({
-    mutationFn: workloadApi.createItem,
-    onSuccess: () => {
-      message.success('工作量记录已新增')
-      setItemModalOpen(false)
-      invalidateWorkload()
-    },
-    onError: (error) => message.error(getErrorMessage(error)),
-  })
-
-  const deleteItem = useMutation({
-    mutationFn: workloadApi.deleteItem,
-    onSuccess: () => {
-      message.success('工作量记录已删除')
-      invalidateWorkload()
-    },
-    onError: (error) => message.error(getErrorMessage(error)),
-  })
-
-  const summary = summaryQuery.data
-  const tasks = tasksQuery.data ?? []
-  const items = itemsQuery.data ?? []
 
   const weeklyOption = useMemo(() => buildWeeklyOption(summary), [summary])
   const courseTypeOption = useMemo(() => buildCourseTypeOption(summary), [summary])
+
+  const openCreateItem = (): void => {
+    itemForm.resetFields()
+    itemForm.setFieldsValue({
+      termId,
+      category: 'competition_guide',
+      quantity: 1,
+      occurredOn: dayjs(),
+      remark: '',
+    })
+    setItemPreview({ category: 'competition_guide', quantity: 1 })
+    setItemModalOpen(true)
+  }
 
   const openCreateTask = (): void => {
     setEditingTask(null)
@@ -287,9 +212,6 @@ export function WorkloadPage(): React.ReactNode {
     )
   }
 
-  const rate = summary?.achievementRate ?? 0
-  const overHours = summary ? Math.max(0, summary.totalHours - summary.requiredHours) : 0
-
   return (
     <Flex vertical gap={16}>
       <PageHeader
@@ -315,117 +237,25 @@ export function WorkloadPage(): React.ReactNode {
         />
       ) : null}
 
-      <StatRow>
-        <StatCard
-          title="总折算学时"
-          value={(summary?.totalHours ?? 0).toFixed(1)}
-          suffix="学时"
-          tone="primary"
-        />
-        <StatCard title="课堂教学" value={(summary?.taskHours ?? 0).toFixed(1)} suffix="学时" />
-        <StatCard title="其它工作量" value={(summary?.itemHours ?? 0).toFixed(1)} suffix="学时" />
-        <StatCard
-          title="达成率"
-          value={`${(rate * 100).toFixed(1)}%`}
-          tone={rate >= 1 ? 'success' : 'warning'}
-          status={rate >= 1 ? <Tag color="success">已达标</Tag> : <Tag color="warning">待完成</Tag>}
-          hint={`总计 ${(summary?.totalHours ?? 0).toFixed(1)} / ${summary?.requiredHours ?? TERM_REQUIRED_HOURS} 学时`}
-        />
-      </StatRow>
+      <WorkloadSummary
+        summary={summary}
+        isLoading={summaryQuery.isLoading}
+        isError={summaryQuery.isError}
+        error={summaryQuery.error}
+        weeklyOption={weeklyOption}
+        courseTypeOption={courseTypeOption}
+      />
 
-      <Card>
-        {summaryQuery.isLoading ? (
-          <Skeleton active paragraph={{ rows: 2 }} />
-        ) : (
-          <Flex vertical gap={8}>
-            <Flex justify="space-between">
-              <Typography.Text type="secondary">
-                折算学时 / 学期基本工作量（{summary?.requiredHours ?? TERM_REQUIRED_HOURS} 学时）
-              </Typography.Text>
-              <Typography.Text strong>
-                {(summary?.totalHours ?? 0).toFixed(1)} / {summary?.requiredHours ?? TERM_REQUIRED_HOURS}
-              </Typography.Text>
-            </Flex>
-            <Progress
-              percent={Math.min(100, Math.round(rate * 1000) / 10)}
-              status={rate >= 1 ? 'success' : 'active'}
-              strokeColor={palette.primary}
-            />
-            <Typography.Text type="secondary" style={{ fontSize: 12 }}>
-              {rate >= 1
-                ? `已超出基本工作量 ${overHours.toFixed(1)} 折算学时，超出部分计入超课时`
-                : `距离基本工作量还差 ${((summary?.requiredHours ?? TERM_REQUIRED_HOURS) - (summary?.totalHours ?? 0)).toFixed(1)} 折算学时`}
-            </Typography.Text>
-          </Flex>
-        )}
-      </Card>
-
-      <Row gutter={[16, 16]}>
-        <Col xs={24} xl={14}>
-          <Card title="周学时分布">
-            {summaryQuery.isLoading ? <Skeleton active paragraph={{ rows: 4 }} /> : <EChart option={weeklyOption} height={260} />}
-          </Card>
-        </Col>
-        <Col xs={24} xl={10}>
-          <Card title="课程类型构成">
-            {summaryQuery.isLoading ? <Skeleton active paragraph={{ rows: 4 }} /> : <EChart option={courseTypeOption} height={260} />}
-          </Card>
-        </Col>
-      </Row>
-
-      <Card
-        title="授课任务"
-        extra={
-          <Button type="primary" icon={<PlusOutlined />} onClick={openCreateTask}>
-            新增授课任务
-          </Button>
-        }
-      >
-        <Table<TeachingTask>
-          rowKey="id"
-          size="middle"
-          loading={tasksQuery.isLoading}
-          dataSource={tasks}
-          columns={taskColumns}
-          pagination={false}
-          scroll={{ x: 1400 }}
-        />
-      </Card>
-
-      <Card
-        title="其它工作量"
-        extra={
-          <Button
-            type="primary"
-            ghost
-            icon={<PlusOutlined />}
-            onClick={() => {
-              itemForm.resetFields()
-              itemForm.setFieldsValue({
-                termId,
-                category: 'competition_guide',
-                quantity: 1,
-                occurredOn: dayjs(),
-                remark: '',
-              })
-              setItemPreview({ category: 'competition_guide', quantity: 1 })
-              setItemModalOpen(true)
-            }}
-          >
-            新增其它工作量
-          </Button>
-        }
-      >
-        <Table<WorkloadItem>
-          rowKey="id"
-          size="middle"
-          loading={itemsQuery.isLoading}
-          dataSource={items}
-          columns={itemColumns}
-          pagination={false}
-          scroll={{ x: 900 }}
-        />
-      </Card>
+      <WorkloadTables
+        tasks={tasks}
+        items={items}
+        tasksLoading={tasksQuery.isLoading}
+        itemsLoading={itemsQuery.isLoading}
+        taskColumns={taskColumns}
+        itemColumns={itemColumns}
+        onCreateTask={openCreateTask}
+        onCreateItem={openCreateItem}
+      />
 
       <TaskFormModal
         open={taskModalOpen}
