@@ -11,7 +11,7 @@ teacher-workbench/
 │  └─ shared/       Zod 契约与共享类型（前后端唯一事实来源）
 ├─ e2e/             Playwright 端到端测试
 ├─ docs/            需求与设计文档
-└─ scripts/         一键启动、数据库初始化脚本
+└─ .scratch/        工单（本地文件模式的 issue tracker）
 ```
 
 **为什么把契约放进 `packages/shared`**：前后端共用同一份 Zod Schema，后端的请求校验与前端表单校验、TypeScript 类型全部从它推导，避免"接口文档与实现漂移"。这是本项目唯一的事实来源。
@@ -73,7 +73,7 @@ apps/api/src/
 |---|---|
 | `users` | 教师账号：用户名、密码哈希、姓名、工号、院系、职称、角色 |
 | `terms` | 学期：名称、起止日期、是否当前学期 |
-| `classes` | 班级：名称、专业、年级、人数 |
+| `class_groups` | 班级：名称、专业、年级、人数 |
 | `courses` | 课程：编码、名称、课程类型、学分、学时 |
 | `teaching_tasks` | 授课任务：教师/学期/课程/班级、星期、节次、周次、总学时、重复次序 |
 | `workload_items` | 其他工作量条目：类别、标题、数量、单位、折算学时 |
@@ -147,7 +147,7 @@ PATCH  /api/todos/:id                 DELETE /api/todos/:id
 |---|---|---|---|
 | 单元 | Vitest | `domain/*` 纯函数（折算、汇总） | 无 |
 | 集成 | Vitest + `app.inject()` | 每个模块的 HTTP 全链路（鉴权、校验、CRUD、状态流转） | 真实 PG `teacher_workbench_test`，每个测试文件前重建 schema |
-| 组件 | Vitest + Testing Library | 前端关键组件（如工作量计算展示、登录表单） | 无 |
+| 组件 | Vitest + Testing Library | 前端关键组件（登录表单、错误边界、未保存守卫、键盘可达性、登出清缓存） | 无 |
 | 端到端 | Playwright | 登录 → 看板 → 工作量录入 → 科研登记 → 申请与审批 → 通知已读 | 真实 PG `teacher_workbench` |
 
 集成测试使用独立测试库，与开发库隔离；测试文件 `beforeAll` 执行迁移并在用例间清理业务表，保证可重复。

@@ -18,7 +18,7 @@ export function clearToken(): void {
 }
 
 export const api = axios.create({
-  baseURL: '/api',
+  baseURL: import.meta.env.VITE_API_BASE_URL?.trim() || '/api',
   timeout: 15_000,
 })
 

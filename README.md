@@ -135,11 +135,11 @@ pnpm dev
 | 层级 | 工具 | 覆盖对象 | 用例数 | 位置 |
 |---|---|---|---|---|
 | 领域单元测试 | Vitest | 折算系数与边界、汇总与达成率、周次与单双周分布、Zod 契约 | **83** | `packages/shared` |
-| 接口集成测试 | Vitest + `app.inject()` | 每个模块的完整 HTTP 链路（鉴权、参数校验、CRUD、状态流转、跨教师越权隔离），跑在真实 PostgreSQL 上 | **109** | `apps/api/test` |
-| 组件测试 | Vitest + Testing Library | 通用卡片与标签、登录表单交互、格式化函数 | **18** | `apps/web/src/**/*.test.tsx` |
-| 端到端测试 | Playwright（Chromium） | 登录 → 看板 → 工作量录入与折算 → 成果登记 → 企业实践 → 申请与审批 → 通知已读 → 待办 | **21** | `e2e/tests` |
+| 接口集成测试 | Vitest + `app.inject()` | 每个模块的完整 HTTP 链路（鉴权、参数校验、CRUD、状态流转、越权与院系隔离）、口令与密钥判定、登录限流，跑在真实 PostgreSQL 上 | **161** | `apps/api/test` |
+| 组件测试 | Vitest + Testing Library | 通用卡片与标签、登录表单、错误边界、未保存守卫、键盘可达性、登出清缓存、格式化函数 | **33** | `apps/web/src/**/*.test.{ts,tsx}` |
+| 端到端测试 | Playwright（Chromium） | 登录 → 看板 → 工作量录入与折算 → 改数据后看板同步 → 成果登记 → 企业实践 → 申请与审批 → 通知已读 → 待办 → 分包守卫 | **24** | `e2e/tests` |
 
-合计 **231** 条自动化用例（210 条单元/集成/组件 + 21 条端到端），全部通过；`pnpm typecheck` 与 `pnpm build` 均无错误。
+合计 **301** 条自动化用例（277 条单元/集成/组件 + 24 条端到端），全部通过；`pnpm typecheck` 与 `pnpm build` 均无错误。
 
 端到端测试跑在**生产构建**（`vite preview`）之上而不是 dev server：dev server 首次加载会触发依赖预构建重载，
 造成偶发的连接中断；跑真实产物既消除了这类抖动，也更贴近上线形态。`pnpm e2e` 会自动完成构建、启动后端与前端、灌入演示数据。
@@ -167,6 +167,8 @@ pnpm dev
 | `08-todos.png` | 待办事项：未完成/已完成/已逾期 |
 | `09-workload-calc-preview.png` | **新增授课任务弹窗与实时折算算式预览** |
 | `10-admin-approval.png` | 院系管理员的「待我审批」视图 |
+| `11-workload-item-form.png` | 新增其它工作量弹窗（含按类别系数的实时折算） |
+| `12-practice-form.png` | 登记企业实践经历弹窗 |
 
 ---
 
@@ -188,8 +190,9 @@ teacher-workbench/
 │     └─ src/
 │        ├─ api/            axios 客户端与全部接口封装
 │        ├─ auth/           登录态 Context
-│        ├─ components/     布局与通用组件
-│        ├─ pages/          九个页面
+│        ├─ components/     布局、错误边界与通用组件
+│        ├─ hooks/          跨页面复用的 hooks（未保存守卫等）
+│        ├─ pages/          十个页面
 │        └─ utils/          展示层格式化
 ├─ packages/shared/         前后端共享契约
 │  └─ src/
@@ -197,8 +200,9 @@ teacher-workbench/
 │     ├─ domain/workload.ts 折算与汇总纯函数
 │     └─ schemas/           Zod 校验与 DTO 类型
 ├─ e2e/                     Playwright 端到端测试
-├─ docs/                    需求规格与架构设计
-└─ scripts/                 辅助脚本
+├─ docs/                    需求规格、架构设计与界面截图
+├─ .scratch/                工单（本地文件模式的 issue tracker）
+└─ AGENTS.md                给协作 agent 的约定与工单规则
 ```
 
 ---
@@ -217,7 +221,15 @@ teacher-workbench/
 
 ---
 
-## 八、已知边界
+## 八、协作与工单
+
+`AGENTS.md` 记录了**代码里看不出来的约定**——业务规则为何只能有一份实现、集成测试为何跑独立测试库、E2E 为何跑生产预览而非 dev server、跑 `pnpm e2e` 会重置演示数据等。接手的人先读它。
+
+本轮加固的工单在 `.scratch/teacher-workbench-hardening/issues/`，一票一文件、按依赖顺序编号，工单头部的 **Blocked by** 就是阻塞边；领取规则与状态词表见 `AGENTS.md`。
+
+---
+
+## 九、已知边界
 
 - 本系统只服务"教师个人"视角，不含排课算法、学生端、学籍、财务、招生。
 - 学期基本工作量（240 折算学时）与各项折算系数是按通行口径设定的默认值，实际落地时需按学校制度调整 `packages/shared/src/constants.ts`。
