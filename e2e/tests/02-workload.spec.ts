@@ -97,4 +97,52 @@ test.describe('教学工作量', () => {
     await expect(main.getByText('理论课').first()).toBeVisible()
     await expect(main.getByText('本周课程数')).toBeVisible()
   })
+
+  test('新增授课任务后，工作台首页的折算学时同步更新', async ({ page }) => {
+    const goToDashboard = async (): Promise<void> => {
+      await page.getByRole('menuitem', { name: '工作台' }).click()
+      await expect(page.getByRole('main')).toBeVisible()
+      await expect(page.getByRole('heading', { name: /老师/ })).toBeVisible()
+    }
+
+    const readDashboardTotal = async (): Promise<number> => {
+      const line = page.getByRole('main').getByText(/\d+(\.\d+)? \/ 240/).first()
+      await expect(line).toBeVisible()
+      const text = (await line.textContent()) ?? ''
+      const matched = text.match(/([\d.]+)\s*\/\s*240/)
+      return Number(matched?.[1] ?? Number.NaN)
+    }
+
+    await login(page)
+
+    await goToDashboard()
+    const before = await readDashboardTotal()
+    expect(Number.isNaN(before)).toBe(false)
+
+    await gotoMenu(page, '教学工作量')
+    await page.getByRole('button', { name: '新增授课任务' }).click()
+    const dialog = page.getByRole('dialog')
+    await expect(dialog).toBeVisible()
+
+    await dialog.getByLabel('课程').click()
+    await page
+      .locator('.ant-select-item-option')
+      .filter({ hasText: '工业机器人操作与编程' })
+      .first()
+      .click()
+    await dialog.getByLabel('授课班级').click()
+    await page
+      .locator('.ant-select-item-option')
+      .filter({ hasText: '汽车检测与维修技术2402' })
+      .first()
+      .click()
+
+    await expect(dialog.getByText('67.2 折算学时')).toBeVisible()
+    await dialog.getByRole('button', { name: /保\s*存/ }).click()
+    await expect(page.getByText('授课任务已新增')).toBeVisible({ timeout: 10_000 })
+
+    await goToDashboard()
+    const after = await readDashboardTotal()
+    expect(after - before).toBeCloseTo(67.2, 1)
+  })
 })

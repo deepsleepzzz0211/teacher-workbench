@@ -153,6 +153,7 @@ export function WorkloadPage(): React.ReactNode {
 
   const invalidateWorkload = (): void => {
     void queryClient.invalidateQueries({ queryKey: ['workload'] })
+    void queryClient.invalidateQueries({ queryKey: ['dashboard'] })
   }
 
   const createTask = useMutation({
