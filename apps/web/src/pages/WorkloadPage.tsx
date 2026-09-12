@@ -14,7 +14,6 @@ import {
   Form,
   Input,
   InputNumber,
-  Modal,
   Popover,
   Progress,
   Row,
@@ -25,7 +24,6 @@ import {
   Tag,
   Typography,
 } from 'antd'
-import type { TableProps } from 'antd'
 import dayjs from 'dayjs'
 
 import {
@@ -51,9 +49,8 @@ import { getErrorMessage } from '@/api/client'
 import { catalogApi, workloadApi } from '@/api/endpoints'
 import { EChart } from '@/components/EChart'
 import { PageHeader, StatCard } from '@/components/PageHeader'
+import { type Columns, FormModal, StatRow, useConfirmDelete } from '@/components/blocks'
 import { useUnsavedChanges } from '@/hooks/useUnsavedChanges'
-
-type Columns<T> = NonNullable<TableProps<T>['columns']>
 
 const WEEKDAY_OPTIONS = WEEKDAY_LABELS.map((label, index) => ({ label, value: index + 1 }))
 const PARITY_OPTIONS = WEEK_PARITIES.map((value) => ({ label: WEEK_PARITY_LABELS[value], value }))
@@ -103,7 +100,8 @@ const EMPTY_TASK_PREVIEW: TaskPreview = {
 }
 
 export function WorkloadPage(): React.ReactNode {
-  const { message, modal } = AntApp.useApp()
+  const { message } = AntApp.useApp()
+  const confirmDelete = useConfirmDelete()
   const queryClient = useQueryClient()
 
   const [selectedTermId, setSelectedTermId] = useState<string | undefined>(undefined)
@@ -352,24 +350,18 @@ export function WorkloadPage(): React.ReactNode {
   }
 
   const confirmDeleteTask = (task: TeachingTask): void => {
-    modal.confirm({
+    confirmDelete({
       title: '删除授课任务',
       content: `确定删除「${task.courseName} · ${task.className}」吗？删除后该记录的折算学时将从汇总中移除。`,
-      okText: '删除',
-      okButtonProps: { danger: true },
-      cancelText: '取消',
-      onOk: () => deleteTask.mutateAsync(task.id),
+      onConfirm: () => deleteTask.mutateAsync(task.id),
     })
   }
 
   const confirmDeleteItem = (item: WorkloadItem): void => {
-    modal.confirm({
+    confirmDelete({
       title: '删除工作量记录',
       content: `确定删除「${item.title}」吗？`,
-      okText: '删除',
-      okButtonProps: { danger: true },
-      cancelText: '取消',
-      onOk: () => deleteItem.mutateAsync(item.id),
+      onConfirm: () => deleteItem.mutateAsync(item.id),
     })
   }
 
@@ -537,31 +529,23 @@ export function WorkloadPage(): React.ReactNode {
         />
       ) : null}
 
-      <Row gutter={[16, 16]}>
-        <Col xs={24} sm={12} xl={6}>
-          <StatCard
-            title="总折算学时"
-            value={(summary?.totalHours ?? 0).toFixed(1)}
-            suffix="学时"
-            tone="primary"
-          />
-        </Col>
-        <Col xs={24} sm={12} xl={6}>
-          <StatCard title="课堂教学" value={(summary?.taskHours ?? 0).toFixed(1)} suffix="学时" />
-        </Col>
-        <Col xs={24} sm={12} xl={6}>
-          <StatCard title="其它工作量" value={(summary?.itemHours ?? 0).toFixed(1)} suffix="学时" />
-        </Col>
-        <Col xs={24} sm={12} xl={6}>
-          <StatCard
-            title="达成率"
-            value={`${(rate * 100).toFixed(1)}%`}
-            tone={rate >= 1 ? 'success' : 'warning'}
-            status={rate >= 1 ? <Tag color="success">已达标</Tag> : <Tag color="warning">待完成</Tag>}
-            hint={`总计 ${(summary?.totalHours ?? 0).toFixed(1)} / ${summary?.requiredHours ?? TERM_REQUIRED_HOURS} 学时`}
-          />
-        </Col>
-      </Row>
+      <StatRow>
+        <StatCard
+          title="总折算学时"
+          value={(summary?.totalHours ?? 0).toFixed(1)}
+          suffix="学时"
+          tone="primary"
+        />
+        <StatCard title="课堂教学" value={(summary?.taskHours ?? 0).toFixed(1)} suffix="学时" />
+        <StatCard title="其它工作量" value={(summary?.itemHours ?? 0).toFixed(1)} suffix="学时" />
+        <StatCard
+          title="达成率"
+          value={`${(rate * 100).toFixed(1)}%`}
+          tone={rate >= 1 ? 'success' : 'warning'}
+          status={rate >= 1 ? <Tag color="success">已达标</Tag> : <Tag color="warning">待完成</Tag>}
+          hint={`总计 ${(summary?.totalHours ?? 0).toFixed(1)} / ${summary?.requiredHours ?? TERM_REQUIRED_HOURS} 学时`}
+        />
+      </StatRow>
 
       <Card>
         {summaryQuery.isLoading ? (
@@ -657,230 +641,216 @@ export function WorkloadPage(): React.ReactNode {
         />
       </Card>
 
-      <Modal
+      <FormModal
         title={editingTask ? '编辑授课任务' : '新增授课任务'}
         open={taskModalOpen}
-        onCancel={() => taskGuard.requestClose(() => setTaskModalOpen(false))}
-        onOk={submitTask}
-        confirmLoading={createTask.isPending || updateTask.isPending}
-        okText="保存"
-        cancelText="取消"
+        onClose={() => taskGuard.requestClose(() => setTaskModalOpen(false))}
+        onSubmit={submitTask}
+        submitting={createTask.isPending || updateTask.isPending}
         width={760}
-        destroyOnHidden
+        form={taskForm}
+        onValuesChange={handleTaskValuesChange}
       >
-        <Form<TaskFormValues>
-          form={taskForm}
-          layout="vertical"
-          onValuesChange={handleTaskValuesChange}
+        <Row gutter={16}>
+          <Col span={12}>
+            <Form.Item name="termId" label="学期" rules={[{ required: true, message: '请选择学期' }]}>
+              <Select
+                options={(termsQuery.data ?? []).map((term) => ({ label: term.name, value: term.id }))}
+              />
+            </Form.Item>
+          </Col>
+          <Col span={12}>
+            <Form.Item name="courseId" label="课程" rules={[{ required: true, message: '请选择课程' }]}>
+              <Select
+                showSearch
+                optionFilterProp="label"
+                placeholder="选择课程（自动带出学时）"
+                options={courses.map((course) => ({
+                  label: `${course.name}（${course.code} · ${COURSE_TYPE_LABELS[course.courseType]}）`,
+                  value: course.id,
+                }))}
+              />
+            </Form.Item>
+          </Col>
+          <Col span={12}>
+            <Form.Item name="classId" label="授课班级" rules={[{ required: true, message: '请选择班级' }]}>
+              <Select
+                showSearch
+                optionFilterProp="label"
+                placeholder="选择班级（自动带出人数）"
+                options={classes.map((group) => ({
+                  label: `${group.name}（${group.studentCount} 人）`,
+                  value: group.id,
+                }))}
+              />
+            </Form.Item>
+          </Col>
+          <Col span={12}>
+            <Form.Item name="location" label="上课地点">
+              <Input placeholder="例如 A101 制图室" />
+            </Form.Item>
+          </Col>
+          <Col span={8}>
+            <Form.Item name="weekday" label="星期" rules={[{ required: true, message: '请选择星期' }]}>
+              <Select options={WEEKDAY_OPTIONS} />
+            </Form.Item>
+          </Col>
+          <Col span={8}>
+            <Form.Item
+              name="startSection"
+              label="开始节次"
+              rules={[{ required: true, message: '请填写开始节次' }]}
+            >
+              <InputNumber min={1} max={12} style={{ width: '100%' }} />
+            </Form.Item>
+          </Col>
+          <Col span={8}>
+            <Form.Item
+              name="endSection"
+              label="结束节次"
+              dependencies={['startSection']}
+              rules={[
+                { required: true, message: '请填写结束节次' },
+                ({ getFieldValue }) => ({
+                  validator: (_rule, value: number) =>
+                    !value || value >= getFieldValue('startSection')
+                      ? Promise.resolve()
+                      : Promise.reject(new Error('结束节次不能早于开始节次')),
+                }),
+              ]}
+            >
+              <InputNumber min={1} max={12} style={{ width: '100%' }} />
+            </Form.Item>
+          </Col>
+          <Col span={8}>
+            <Form.Item name="weekStart" label="起始周" rules={[{ required: true, message: '请填写起始周' }]}>
+              <InputNumber min={1} max={MAX_WEEKS} style={{ width: '100%' }} />
+            </Form.Item>
+          </Col>
+          <Col span={8}>
+            <Form.Item
+              name="weekEnd"
+              label="结束周"
+              dependencies={['weekStart']}
+              rules={[
+                { required: true, message: '请填写结束周' },
+                ({ getFieldValue }) => ({
+                  validator: (_rule, value: number) =>
+                    !value || value >= getFieldValue('weekStart')
+                      ? Promise.resolve()
+                      : Promise.reject(new Error('结束周次不能早于开始周次')),
+                }),
+              ]}
+            >
+              <InputNumber min={1} max={MAX_WEEKS} style={{ width: '100%' }} />
+            </Form.Item>
+          </Col>
+          <Col span={8}>
+            <Form.Item name="weekParity" label="单双周" rules={[{ required: true, message: '请选择单双周' }]}>
+              <Select options={PARITY_OPTIONS} />
+            </Form.Item>
+          </Col>
+          <Col span={8}>
+            <Form.Item
+              name="totalHours"
+              label="总学时"
+              rules={[{ required: true, message: '请填写总学时' }]}
+            >
+              <InputNumber min={0.5} max={2000} step={0.5} style={{ width: '100%' }} />
+            </Form.Item>
+          </Col>
+          <Col span={8}>
+            <Form.Item
+              name="studentCount"
+              label="班级人数"
+              rules={[{ required: true, message: '请填写班级人数' }]}
+            >
+              <InputNumber min={1} max={300} style={{ width: '100%' }} />
+            </Form.Item>
+          </Col>
+          <Col span={8}>
+            <Form.Item
+              name="repeatIndex"
+              label="重复课次序"
+              tooltip="同一学期同一课程第几次授课，第 2 次起按 0.9 折算"
+              rules={[{ required: true, message: '请填写重复课次序' }]}
+            >
+              <InputNumber min={1} max={20} style={{ width: '100%' }} />
+            </Form.Item>
+          </Col>
+          <Col span={24}>
+            <Form.Item name="remark" label="备注">
+              <Input placeholder="选填，例如 合班教学、单周上课等" />
+            </Form.Item>
+          </Col>
+        </Row>
+
+        <TaskPreviewBox preview={taskPreview} />
+      </FormModal>
+
+      <FormModal
+      title="新增其它工作量"
+      open={itemModalOpen}
+      onClose={() => itemGuard.requestClose(() => setItemModalOpen(false))}
+      onSubmit={submitItem}
+      submitting={createItem.isPending}
+      form={itemForm}
+      onValuesChange={(_changed, all) =>
+        setItemPreview({
+          category: all.category ?? 'competition_guide',
+          quantity: Number(all.quantity) || 0,
+        })
+      }
+    >
+        <Form.Item name="termId" label="学期" rules={[{ required: true, message: '请选择学期' }]}>
+          <Select options={(termsQuery.data ?? []).map((term) => ({ label: term.name, value: term.id }))} />
+        </Form.Item>
+        <Form.Item name="category" label="类别" rules={[{ required: true, message: '请选择类别' }]}>
+          <Select options={ITEM_CATEGORY_OPTIONS} />
+        </Form.Item>
+        <Form.Item name="title" label="工作内容" rules={[{ required: true, message: '请填写工作内容' }]}>
+          <Input placeholder="例如 2026年省职业院校技能大赛指导" />
+        </Form.Item>
+        <Form.Item label="数量" required>
+          <Space.Compact style={{ width: '100%' }}>
+            <Form.Item
+              name="quantity"
+              noStyle
+              rules={[{ required: true, message: '请填写数量' }]}
+            >
+              <InputNumber min={0.5} max={10000} step={0.5} style={{ width: '100%' }} />
+            </Form.Item>
+            <Space.Addon>{WORKLOAD_ITEM_RULES[itemPreview.category].unit}</Space.Addon>
+          </Space.Compact>
+        </Form.Item>
+        <Form.Item
+          name="occurredOn"
+          label="发生日期"
+          rules={[{ required: true, message: '请选择发生日期' }]}
         >
-          <Row gutter={16}>
-            <Col span={12}>
-              <Form.Item name="termId" label="学期" rules={[{ required: true, message: '请选择学期' }]}>
-                <Select
-                  options={(termsQuery.data ?? []).map((term) => ({ label: term.name, value: term.id }))}
-                />
-              </Form.Item>
-            </Col>
-            <Col span={12}>
-              <Form.Item name="courseId" label="课程" rules={[{ required: true, message: '请选择课程' }]}>
-                <Select
-                  showSearch
-                  optionFilterProp="label"
-                  placeholder="选择课程（自动带出学时）"
-                  options={courses.map((course) => ({
-                    label: `${course.name}（${course.code} · ${COURSE_TYPE_LABELS[course.courseType]}）`,
-                    value: course.id,
-                  }))}
-                />
-              </Form.Item>
-            </Col>
-            <Col span={12}>
-              <Form.Item name="classId" label="授课班级" rules={[{ required: true, message: '请选择班级' }]}>
-                <Select
-                  showSearch
-                  optionFilterProp="label"
-                  placeholder="选择班级（自动带出人数）"
-                  options={classes.map((group) => ({
-                    label: `${group.name}（${group.studentCount} 人）`,
-                    value: group.id,
-                  }))}
-                />
-              </Form.Item>
-            </Col>
-            <Col span={12}>
-              <Form.Item name="location" label="上课地点">
-                <Input placeholder="例如 A101 制图室" />
-              </Form.Item>
-            </Col>
-            <Col span={8}>
-              <Form.Item name="weekday" label="星期" rules={[{ required: true, message: '请选择星期' }]}>
-                <Select options={WEEKDAY_OPTIONS} />
-              </Form.Item>
-            </Col>
-            <Col span={8}>
-              <Form.Item
-                name="startSection"
-                label="开始节次"
-                rules={[{ required: true, message: '请填写开始节次' }]}
-              >
-                <InputNumber min={1} max={12} style={{ width: '100%' }} />
-              </Form.Item>
-            </Col>
-            <Col span={8}>
-              <Form.Item
-                name="endSection"
-                label="结束节次"
-                dependencies={['startSection']}
-                rules={[
-                  { required: true, message: '请填写结束节次' },
-                  ({ getFieldValue }) => ({
-                    validator: (_rule, value: number) =>
-                      !value || value >= getFieldValue('startSection')
-                        ? Promise.resolve()
-                        : Promise.reject(new Error('结束节次不能早于开始节次')),
-                  }),
-                ]}
-              >
-                <InputNumber min={1} max={12} style={{ width: '100%' }} />
-              </Form.Item>
-            </Col>
-            <Col span={8}>
-              <Form.Item name="weekStart" label="起始周" rules={[{ required: true, message: '请填写起始周' }]}>
-                <InputNumber min={1} max={MAX_WEEKS} style={{ width: '100%' }} />
-              </Form.Item>
-            </Col>
-            <Col span={8}>
-              <Form.Item
-                name="weekEnd"
-                label="结束周"
-                dependencies={['weekStart']}
-                rules={[
-                  { required: true, message: '请填写结束周' },
-                  ({ getFieldValue }) => ({
-                    validator: (_rule, value: number) =>
-                      !value || value >= getFieldValue('weekStart')
-                        ? Promise.resolve()
-                        : Promise.reject(new Error('结束周次不能早于开始周次')),
-                  }),
-                ]}
-              >
-                <InputNumber min={1} max={MAX_WEEKS} style={{ width: '100%' }} />
-              </Form.Item>
-            </Col>
-            <Col span={8}>
-              <Form.Item name="weekParity" label="单双周" rules={[{ required: true, message: '请选择单双周' }]}>
-                <Select options={PARITY_OPTIONS} />
-              </Form.Item>
-            </Col>
-            <Col span={8}>
-              <Form.Item
-                name="totalHours"
-                label="总学时"
-                rules={[{ required: true, message: '请填写总学时' }]}
-              >
-                <InputNumber min={0.5} max={2000} step={0.5} style={{ width: '100%' }} />
-              </Form.Item>
-            </Col>
-            <Col span={8}>
-              <Form.Item
-                name="studentCount"
-                label="班级人数"
-                rules={[{ required: true, message: '请填写班级人数' }]}
-              >
-                <InputNumber min={1} max={300} style={{ width: '100%' }} />
-              </Form.Item>
-            </Col>
-            <Col span={8}>
-              <Form.Item
-                name="repeatIndex"
-                label="重复课次序"
-                tooltip="同一学期同一课程第几次授课，第 2 次起按 0.9 折算"
-                rules={[{ required: true, message: '请填写重复课次序' }]}
-              >
-                <InputNumber min={1} max={20} style={{ width: '100%' }} />
-              </Form.Item>
-            </Col>
-            <Col span={24}>
-              <Form.Item name="remark" label="备注">
-                <Input placeholder="选填，例如 合班教学、单周上课等" />
-              </Form.Item>
-            </Col>
-          </Row>
+          <DatePicker style={{ width: '100%' }} />
+        </Form.Item>
+        <Form.Item name="remark" label="备注">
+          <Input />
+        </Form.Item>
 
-          <TaskPreviewBox preview={taskPreview} />
-        </Form>
-      </Modal>
-
-      <Modal
-        title="新增其它工作量"
-        open={itemModalOpen}
-        onCancel={() => itemGuard.requestClose(() => setItemModalOpen(false))}
-        onOk={submitItem}
-        confirmLoading={createItem.isPending}
-        okText="保存"
-        cancelText="取消"
-        destroyOnHidden
-      >
-        <Form<ItemFormValues>
-          form={itemForm}
-          layout="vertical"
-          onValuesChange={(_changed, all) =>
-            setItemPreview({
-              category: all.category ?? 'competition_guide',
-              quantity: Number(all.quantity) || 0,
-            })
-          }
-        >
-          <Form.Item name="termId" label="学期" rules={[{ required: true, message: '请选择学期' }]}>
-            <Select options={(termsQuery.data ?? []).map((term) => ({ label: term.name, value: term.id }))} />
-          </Form.Item>
-          <Form.Item name="category" label="类别" rules={[{ required: true, message: '请选择类别' }]}>
-            <Select options={ITEM_CATEGORY_OPTIONS} />
-          </Form.Item>
-          <Form.Item name="title" label="工作内容" rules={[{ required: true, message: '请填写工作内容' }]}>
-            <Input placeholder="例如 2026年省职业院校技能大赛指导" />
-          </Form.Item>
-          <Form.Item label="数量" required>
-            <Space.Compact style={{ width: '100%' }}>
-              <Form.Item
-                name="quantity"
-                noStyle
-                rules={[{ required: true, message: '请填写数量' }]}
-              >
-                <InputNumber min={0.5} max={10000} step={0.5} style={{ width: '100%' }} />
-              </Form.Item>
-              <Space.Addon>{WORKLOAD_ITEM_RULES[itemPreview.category].unit}</Space.Addon>
-            </Space.Compact>
-          </Form.Item>
-          <Form.Item
-            name="occurredOn"
-            label="发生日期"
-            rules={[{ required: true, message: '请选择发生日期' }]}
-          >
-            <DatePicker style={{ width: '100%' }} />
-          </Form.Item>
-          <Form.Item name="remark" label="备注">
-            <Input />
-          </Form.Item>
-
-          <Card size="small" style={{ background: '#f8fafc' }}>
-            <Typography.Text type="secondary" style={{ fontSize: 12 }}>
-              折算规则
+        <Card size="small" style={{ background: '#f8fafc' }}>
+          <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+            折算规则
+          </Typography.Text>
+          <div style={{ marginTop: 6 }}>
+            数量 {itemPreview.quantity || 0} {WORKLOAD_ITEM_RULES[itemPreview.category].unit} × 系数{' '}
+            {WORKLOAD_ITEM_RULES[itemPreview.category].hoursPerUnit} ={' '}
+            <Typography.Text strong>
+              {calcItemHours({
+                category: itemPreview.category,
+                quantity: itemPreview.quantity,
+              }).toFixed(1)}{' '}
+              折算学时
             </Typography.Text>
-            <div style={{ marginTop: 6 }}>
-              数量 {itemPreview.quantity || 0} {WORKLOAD_ITEM_RULES[itemPreview.category].unit} × 系数{' '}
-              {WORKLOAD_ITEM_RULES[itemPreview.category].hoursPerUnit} ={' '}
-              <Typography.Text strong>
-                {calcItemHours({
-                  category: itemPreview.category,
-                  quantity: itemPreview.quantity,
-                }).toFixed(1)}{' '}
-                折算学时
-              </Typography.Text>
-            </div>
-          </Card>
-        </Form>
-      </Modal>
+          </div>
+        </Card>
+      </FormModal>
 
       {taskGuard.confirmNode}
       {itemGuard.confirmNode}
