@@ -23,7 +23,6 @@ import {
   Tooltip,
   Typography,
 } from 'antd'
-import type { TableProps } from 'antd'
 import dayjs, { type Dayjs } from 'dayjs'
 
 import {
@@ -37,11 +36,10 @@ import { getErrorMessage } from '@/api/client'
 import { applicationApi, workloadApi } from '@/api/endpoints'
 import { useAuth } from '@/auth/AuthContext'
 import { PageHeader } from '@/components/PageHeader'
+import { type Columns, FormModal } from '@/components/blocks'
 import { ApplicationStatusTag } from '@/components/tags'
 import { useUnsavedChanges } from '@/hooks/useUnsavedChanges'
 import { formatDate } from '@/utils/format'
-
-type Columns<T> = NonNullable<TableProps<T>['columns']>
 
 interface ApplicationFormValues {
   type: ApplicationType
@@ -215,80 +213,74 @@ function MyApplications(): React.ReactNode {
         />
       )}
 
-      <Modal
+      <FormModal
         title="发起调课 / 请假申请"
         open={modalOpen}
-        onCancel={() => guard.requestClose(() => setModalOpen(false))}
-        onOk={submit}
-        confirmLoading={createMutation.isPending}
+        onClose={() => guard.requestClose(() => setModalOpen(false))}
+        onSubmit={submit}
+        submitting={createMutation.isPending}
         okText="提交申请"
-        cancelText="取消"
         width={640}
-        destroyOnHidden
+        form={form}
+        onValuesChange={(changed) => {
+          if (changed.type) setType(changed.type)
+        }}
       >
-        <Form<ApplicationFormValues>
-          form={form}
-          layout="vertical"
-          onValuesChange={(changed) => {
-            if (changed.type) setType(changed.type)
-          }}
+        <Form.Item name="type" label="申请类型" rules={[{ required: true, message: '请选择申请类型' }]}>
+          <Radio.Group>
+            <Radio.Button value="adjust_class">调课申请</Radio.Button>
+            <Radio.Button value="leave">请假申请</Radio.Button>
+          </Radio.Group>
+        </Form.Item>
+
+        <Form.Item name="taskId" label="关联授课任务" extra="选填，便于管理员核对课程与班级">
+          <Select
+            allowClear
+            showSearch
+            optionFilterProp="label"
+            placeholder="选择授课任务"
+            options={(tasksQuery.data ?? []).map((task) => ({
+              label: `${task.courseName} · ${task.className}`,
+              value: task.id,
+            }))}
+          />
+        </Form.Item>
+
+        <Form.Item
+          name="originalDate"
+          label="原上课日期"
+          rules={[{ required: true, message: '请选择原上课日期' }]}
         >
-          <Form.Item name="type" label="申请类型" rules={[{ required: true, message: '请选择申请类型' }]}>
-            <Radio.Group>
-              <Radio.Button value="adjust_class">调课申请</Radio.Button>
-              <Radio.Button value="leave">请假申请</Radio.Button>
-            </Radio.Group>
-          </Form.Item>
+          <DatePicker style={{ width: '100%' }} />
+        </Form.Item>
 
-          <Form.Item name="taskId" label="关联授课任务" extra="选填，便于管理员核对课程与班级">
-            <Select
-              allowClear
-              showSearch
-              optionFilterProp="label"
-              placeholder="选择授课任务"
-              options={(tasksQuery.data ?? []).map((task) => ({
-                label: `${task.courseName} · ${task.className}`,
-                value: task.id,
-              }))}
-            />
-          </Form.Item>
+        <Form.Item name="originalSection" label="原节次">
+          <Input placeholder="例如 第1-4节" />
+        </Form.Item>
 
-          <Form.Item
-            name="originalDate"
-            label="原上课日期"
-            rules={[{ required: true, message: '请选择原上课日期' }]}
-          >
-            <DatePicker style={{ width: '100%' }} />
-          </Form.Item>
+        <Form.Item
+          name="targetDate"
+          label="调整后日期"
+          rules={isAdjust ? [{ required: true, message: '调课申请需填写调整后日期' }] : []}
+        >
+          <DatePicker style={{ width: '100%' }} disabled={!isAdjust} />
+        </Form.Item>
 
-          <Form.Item name="originalSection" label="原节次">
-            <Input placeholder="例如 第1-4节" />
-          </Form.Item>
+        <Form.Item name="targetSection" label="调整后节次">
+          <Input placeholder="例如 第5-8节" disabled={!isAdjust} />
+        </Form.Item>
 
-          <Form.Item
-            name="targetDate"
-            label="调整后日期"
-            rules={isAdjust ? [{ required: true, message: '调课申请需填写调整后日期' }] : []}
-          >
-            <DatePicker style={{ width: '100%' }} disabled={!isAdjust} />
-          </Form.Item>
-
-          <Form.Item name="targetSection" label="调整后节次">
-            <Input placeholder="例如 第5-8节" disabled={!isAdjust} />
-          </Form.Item>
-
-          <Form.Item
-            name="reason"
-            label="申请事由"
-            rules={[
-              { required: true, message: '请填写申请事由' },
-              { min: 5, message: '事由至少 5 个字，便于管理员判断' },
-            ]}
-          >
-            <Input.TextArea rows={3} placeholder="请说明具体原因，例如赴企业参加产教融合项目对接会" />
-          </Form.Item>
-        </Form>
-      </Modal>
+        <Form.Item
+          name="reason"
+          label="申请事由"
+          rules={[
+            { required: true, message: '请填写申请事由' },
+            { min: 5, message: '事由至少 5 个字，便于管理员判断' },
+          ]}
+        >
+          <Input.TextArea rows={3} placeholder="请说明具体原因，例如赴企业参加产教融合项目对接会" />
+        </Form.Item>
+      </FormModal>
 
       {guard.confirmNode}
     </Flex>
