@@ -128,6 +128,10 @@ pnpm dev
 | `pnpm test` | 全部单元 / 集成 / 组件测试 |
 | `pnpm test:api` / `pnpm test:web` | 分别运行后端 / 前端测试 |
 | `pnpm typecheck` | 全仓库类型检查 |
+| `pnpm lint` | ESLint 规范检查（CI 门禁之一） |
+| `pnpm lint:fix` | ESLint 自动修复 |
+| `pnpm lint:deps` | 未使用依赖检查（knip，CI 门禁之一） |
+| `pnpm format` / `format:check` | Prettier 格式化 / 检查（暂未纳入门禁，见「已知边界」） |
 | `pnpm e2e` | 端到端测试（会先自动启动前后端） |
 | `pnpm e2e:install` | 首次运行前安装 Chromium |
 | `pnpm capture` | 重新采集 `docs/screenshots` 下的界面截图 |
@@ -140,16 +144,16 @@ pnpm dev
 | 层级 | 工具 | 覆盖对象 | 用例数 | 位置 |
 |---|---|---|---|---|
 | 领域单元测试 | Vitest | 折算系数与边界、汇总与达成率、周次与单双周分布、Zod 契约 | **83** | `packages/shared` |
-| 接口集成测试 | Vitest + `app.inject()` | 每个模块的完整 HTTP 链路（鉴权、参数校验、CRUD、状态流转、越权与院系隔离）、口令与密钥判定、登录限流，跑在真实 PostgreSQL 上 | **161** | `apps/api/test` |
-| 组件测试 | Vitest + Testing Library | 通用卡片与标签、登录表单、错误边界、未保存守卫、键盘可达性、登出清缓存、格式化函数 | **33** | `apps/web/src/**/*.test.{ts,tsx}` |
-| 端到端测试 | Playwright（Chromium） | 登录 → 看板 → 工作量录入与折算 → 改数据后看板同步 → 成果登记 → 企业实践 → 申请与审批 → 通知已读 → 待办 → 分包守卫 | **24** | `e2e/tests` |
+| 接口集成测试 | Vitest + `app.inject()` | 每个模块的完整 HTTP 链路（鉴权、参数校验、CRUD、状态流转、越权与院系隔离）、口令与密钥判定、登录限流，跑在真实 PostgreSQL 上 | **160** | `apps/api/test` |
+| 组件测试 | Vitest + Testing Library | **授课任务的实时折算预览（含班级规模 40 人阈值、重复课系数）**、**首页看板统计按接口数据渲染**、通用卡片与标签、登录表单、错误边界、未保存守卫、键盘可达性、登出清缓存、格式化函数 | **39** | `apps/web/src/**/*.test.{ts,tsx}` |
+| 端到端测试 | Playwright（Chromium） | 登录 → 看板 → 工作量录入与折算 → 改数据后看板同步 → 成果登记 → 企业实践 → 申请与审批 → 通知已读 → 待办 → 分包守卫 | **26** | `e2e/tests` |
 
-合计 **301** 条自动化用例（277 条单元/集成/组件 + 24 条端到端），全部通过；`pnpm typecheck` 与 `pnpm build` 均无错误。
+合计 **308** 条自动化用例（282 条单元/集成/组件 + 26 条端到端），全部通过；`pnpm typecheck`、`pnpm lint` 与 `pnpm build` 均无错误。
 
 端到端测试跑在**生产构建**（`vite preview`）之上而不是 dev server：dev server 首次加载会触发依赖预构建重载，
 造成偶发的连接中断；跑真实产物既消除了这类抖动，也更贴近上线形态。`pnpm e2e` 会自动完成构建、启动后端与前端、灌入演示数据。
 
-推送与 PR 都会触发 CI，依次执行 `typecheck` → `test` → `build`，全部通过后才跑端到端测试；任一步失败即整体失败。
+推送与 PR 都会触发 CI，依次执行 `typecheck` → `lint` → 未使用依赖检查 → `test` → `build`，全部通过后才跑端到端测试；任一步失败即整体失败。
 
 集成测试跑在独立的 `teacher_workbench_test` 库上，测试文件启动时会重建 `public` schema；
 测试辅助模块带**安全阀**：若当前连接的不是 `*_test` 库会直接报错，防止误清开发数据。
