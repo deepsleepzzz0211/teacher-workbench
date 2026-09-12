@@ -13,7 +13,6 @@ import {
   Form,
   Input,
   InputNumber,
-  Modal,
   Row,
   Select,
   Skeleton,
@@ -23,7 +22,6 @@ import {
   Tooltip,
   Typography,
 } from 'antd'
-import type { TableProps } from 'antd'
 import dayjs, { type Dayjs } from 'dayjs'
 
 import {
@@ -43,11 +41,10 @@ import { getErrorMessage } from '@/api/client'
 import { achievementApi } from '@/api/endpoints'
 import { EChart } from '@/components/EChart'
 import { PageHeader, StatCard } from '@/components/PageHeader'
+import { type Columns, FormModal, StatRow, useConfirmDelete } from '@/components/blocks'
 import { LevelTag } from '@/components/tags'
 import { useUnsavedChanges } from '@/hooks/useUnsavedChanges'
 import { formatDate } from '@/utils/format'
-
-type Columns<T> = NonNullable<TableProps<T>['columns']>
 
 const CATEGORY_OPTIONS = ACHIEVEMENT_CATEGORIES.map((value) => ({
   label: ACHIEVEMENT_CATEGORY_LABELS[value],
@@ -69,7 +66,8 @@ interface AchievementFormValues {
 }
 
 export function AchievementPage(): React.ReactNode {
-  const { message, modal } = AntApp.useApp()
+  const { message } = AntApp.useApp()
+  const confirmDelete = useConfirmDelete()
   const queryClient = useQueryClient()
 
   const [category, setCategory] = useState<AchievementCategory | undefined>(undefined)
@@ -231,13 +229,10 @@ export function AchievementPage(): React.ReactNode {
   }
 
   const confirmRemove = (record: Achievement): void => {
-    modal.confirm({
+    confirmDelete({
       title: '删除成果记录',
       content: `确定删除「${record.title}」吗？该操作不可撤销。`,
-      okText: '删除',
-      okButtonProps: { danger: true },
-      cancelText: '取消',
-      onOk: () => removeMutation.mutateAsync(record.id),
+      onConfirm: () => removeMutation.mutateAsync(record.id),
     })
   }
 
@@ -327,20 +322,12 @@ export function AchievementPage(): React.ReactNode {
         }
       />
 
-      <Row gutter={[16, 16]}>
-        <Col xs={24} sm={12} xl={6}>
-          <StatCard title="成果总数" value={stats?.total ?? 0} suffix="项" tone="primary" />
-        </Col>
-        <Col xs={24} sm={12} xl={6}>
-          <StatCard title="业绩总分" value={stats?.scoreSum ?? 0} suffix="分" tone="success" />
-        </Col>
-        <Col xs={24} sm={12} xl={6}>
-          <StatCard title="国家级及以上" value={stats?.byLevel.national ?? 0} suffix="项" />
-        </Col>
-        <Col xs={24} sm={12} xl={6}>
-          <StatCard title="省级" value={stats?.byLevel.provincial ?? 0} suffix="项" />
-        </Col>
-      </Row>
+      <StatRow>
+        <StatCard title="成果总数" value={stats?.total ?? 0} suffix="项" tone="primary" />
+        <StatCard title="业绩总分" value={stats?.scoreSum ?? 0} suffix="分" tone="success" />
+        <StatCard title="国家级及以上" value={stats?.byLevel.national ?? 0} suffix="项" />
+        <StatCard title="省级" value={stats?.byLevel.provincial ?? 0} suffix="项" />
+      </StatRow>
 
       <Row gutter={[16, 16]}>
         <Col xs={24} xl={14}>
@@ -423,74 +410,67 @@ export function AchievementPage(): React.ReactNode {
         />
       </Card>
 
-      <Modal
+      <FormModal
         title={editing ? '编辑成果' : '登记新成果'}
         open={modalOpen}
-        onCancel={() => guard.requestClose(() => setModalOpen(false))}
-        onOk={submit}
-        confirmLoading={createMutation.isPending || updateMutation.isPending}
-        okText="保存"
-        cancelText="取消"
+        onClose={() => guard.requestClose(() => setModalOpen(false))}
+        onSubmit={submit}
+        submitting={createMutation.isPending || updateMutation.isPending}
         width={640}
-        destroyOnHidden
+        form={form}
+        onValuesChange={(changed) => {
+          if (changed.level) setSelectedLevel(changed.level)
+        }}
       >
-        <Form<AchievementFormValues>
-          form={form}
-          layout="vertical"
-          onValuesChange={(changed) => {
-            if (changed.level) setSelectedLevel(changed.level)
-          }}
-        >
-          <Row gutter={16}>
-            <Col span={12}>
-              <Form.Item name="category" label="成果类别" rules={[{ required: true, message: '请选择成果类别' }]}>
-                <Select options={CATEGORY_OPTIONS} />
-              </Form.Item>
-            </Col>
-            <Col span={12}>
-              <Form.Item name="level" label="成果级别" rules={[{ required: true, message: '请选择成果级别' }]}>
-                <Select options={LEVEL_OPTIONS} />
-              </Form.Item>
-            </Col>
-            <Col span={24}>
-              <Form.Item
-                name="title"
-                label="成果名称"
-                rules={[
-                  { required: true, message: '请填写成果名称' },
-                  { min: 2, message: '成果名称至少 2 个字' },
-                ]}
-              >
-                <Input placeholder="例如 产教融合背景下高职数控专业课程改革实践" />
-              </Form.Item>
-            </Col>
-            <Col span={8}>
-              <Form.Item name="role" label="本人角色" rules={[{ required: true, message: '请填写本人角色' }]}>
-                <Input placeholder="主持人 / 第一作者" />
-              </Form.Item>
-            </Col>
-            <Col span={8}>
-              <Form.Item name="achievedOn" label="取得日期" rules={[{ required: true, message: '请选择取得日期' }]}>
-                <DatePicker style={{ width: '100%' }} />
-              </Form.Item>
-            </Col>
-            <Col span={8}>
-              <Form.Item
-                name="score"
-                label="自评分值"
-                extra={`留空则按级别自动折算：${ACHIEVEMENT_LEVEL_LABELS[selectedLevel]} ${ACHIEVEMENT_LEVEL_POINTS[selectedLevel]} 分`}
-              >
-                <InputNumber min={0} max={500} style={{ width: '100%' }} placeholder="选填" />
-              </Form.Item>
-            </Col>
-            <Col span={24}>
-              <Form.Item name="description" label="说明">
-                <Input.TextArea rows={3} placeholder="例如 发表期刊、立项单位、佐证材料位置等" />
-              </Form.Item>
-            </Col>
-          </Row>
-        </Form>
-      </Modal>
+        <Row gutter={16}>
+          <Col span={12}>
+            <Form.Item name="category" label="成果类别" rules={[{ required: true, message: '请选择成果类别' }]}>
+              <Select options={CATEGORY_OPTIONS} />
+            </Form.Item>
+          </Col>
+          <Col span={12}>
+            <Form.Item name="level" label="成果级别" rules={[{ required: true, message: '请选择成果级别' }]}>
+              <Select options={LEVEL_OPTIONS} />
+            </Form.Item>
+          </Col>
+          <Col span={24}>
+            <Form.Item
+              name="title"
+              label="成果名称"
+              rules={[
+                { required: true, message: '请填写成果名称' },
+                { min: 2, message: '成果名称至少 2 个字' },
+              ]}
+            >
+              <Input placeholder="例如 产教融合背景下高职数控专业课程改革实践" />
+            </Form.Item>
+          </Col>
+          <Col span={8}>
+            <Form.Item name="role" label="本人角色" rules={[{ required: true, message: '请填写本人角色' }]}>
+              <Input placeholder="主持人 / 第一作者" />
+            </Form.Item>
+          </Col>
+          <Col span={8}>
+            <Form.Item name="achievedOn" label="取得日期" rules={[{ required: true, message: '请选择取得日期' }]}>
+              <DatePicker style={{ width: '100%' }} />
+            </Form.Item>
+          </Col>
+          <Col span={8}>
+            <Form.Item
+              name="score"
+              label="自评分值"
+              extra={`留空则按级别自动折算：${ACHIEVEMENT_LEVEL_LABELS[selectedLevel]} ${ACHIEVEMENT_LEVEL_POINTS[selectedLevel]} 分`}
+            >
+              <InputNumber min={0} max={500} style={{ width: '100%' }} placeholder="选填" />
+            </Form.Item>
+          </Col>
+          <Col span={24}>
+            <Form.Item name="description" label="说明">
+              <Input.TextArea rows={3} placeholder="例如 发表期刊、立项单位、佐证材料位置等" />
+            </Form.Item>
+          </Col>
+        </Row>
+      </FormModal>
 
       {guard.confirmNode}
     </Flex>
