@@ -57,18 +57,9 @@ type Columns<T> = NonNullable<TableProps<T>['columns']>
 
 const WEEKDAY_OPTIONS = WEEKDAY_LABELS.map((label, index) => ({ label, value: index + 1 }))
 const PARITY_OPTIONS = WEEK_PARITIES.map((value) => ({ label: WEEK_PARITY_LABELS[value], value }))
-const COURSE_TYPE_OPTIONS = (Object.keys(COURSE_TYPE_LABELS) as CourseType[]).map((value) => ({
-  label: COURSE_TYPE_LABELS[value],
-  value,
-}))
 const ITEM_CATEGORY_OPTIONS = WORKLOAD_ITEM_CATEGORIES.map((value) => ({
   label: WORKLOAD_ITEM_RULES[value].label,
   value,
-}))
-
-const WEEK_OPTIONS = Array.from({ length: MAX_WEEKS }, (_, index) => ({
-  label: `第 ${index + 1} 周`,
-  value: index + 1,
 }))
 
 interface TaskFormValues {

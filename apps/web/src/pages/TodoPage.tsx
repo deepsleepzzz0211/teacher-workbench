@@ -106,7 +106,7 @@ export function TodoPage(): React.ReactNode {
     onError: (error) => message.error(getErrorMessage(error)),
   })
 
-  const todos = listQuery.data ?? []
+  const todos = useMemo(() => listQuery.data ?? [], [listQuery.data])
 
   const counters = useMemo(() => {
     const pending = todos.filter((todo) => todo.status === 'pending')

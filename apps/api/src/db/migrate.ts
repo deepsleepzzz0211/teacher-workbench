@@ -22,11 +22,11 @@ export async function migrate(pool: Pool): Promise<string[]> {
      )`,
   )
 
-  let files: string[] = []
+  let files: string[]
   try {
     files = (await readdir(MIGRATIONS_DIR)).filter((file) => file.endsWith('.sql')).sort()
-  } catch {
-    throw new Error(`找不到迁移目录：${MIGRATIONS_DIR}`)
+  } catch (error) {
+    throw new Error(`找不到迁移目录：${MIGRATIONS_DIR}`, { cause: error })
   }
 
   const applied: string[] = []
@@ -44,7 +44,10 @@ export async function migrate(pool: Pool): Promise<string[]> {
       applied.push(file)
     } catch (error) {
       await client.query('rollback')
-      throw new Error(`迁移 ${file} 执行失败：${(error as Error).message}`)
+      throw new Error(
+        `迁移 ${file} 执行失败：${error instanceof Error ? error.message : String(error)}`,
+        { cause: error },
+      )
     } finally {
       client.release()
     }

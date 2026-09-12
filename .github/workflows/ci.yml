@@ -55,6 +55,9 @@ jobs:
       - name: 类型检查
         run: pnpm typecheck
 
+      - name: 代码规范
+        run: pnpm lint
+
       - name: 单元 / 集成 / 组件测试
         run: pnpm test
 

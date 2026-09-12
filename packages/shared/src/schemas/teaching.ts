@@ -2,7 +2,6 @@ import { z } from 'zod'
 
 import {
   type CourseType,
-  COURSE_TYPES,
   MAX_WEEKS,
   WEEK_PARITIES,
   type WeekParity,

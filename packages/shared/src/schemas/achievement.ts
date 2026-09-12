@@ -6,7 +6,7 @@ import {
   type AchievementCategory,
   type AchievementLevel,
 } from '../constants'
-import { dateString, inclusiveDays, uuidSchema } from './common'
+import { dateString, inclusiveDays } from './common'
 
 /* ------------------------------- 教科研成果 ------------------------------- */
 
