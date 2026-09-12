@@ -78,6 +78,26 @@ test.describe('登录与工作台首页', () => {
     await expect(page.getByRole('menuitem', { name: '退出登录' })).toBeVisible()
   })
 
+  test('账户菜单可以用纯键盘一路走到退出登录', async ({ page }) => {
+    await login(page)
+
+    const trigger = page.getByTestId('user-menu')
+    await trigger.focus()
+    await expect(trigger).toBeFocused()
+
+    await page.keyboard.press('Enter')
+
+    const logoutItem = page.getByRole('menuitem', { name: '退出登录' })
+    await expect(logoutItem).toBeVisible()
+
+    await page.keyboard.press('ArrowDown')
+    await expect(logoutItem).toBeFocused()
+
+    await page.keyboard.press('Enter')
+
+    await expect(page).toHaveURL(/\/login$/)
+  })
+
   test('通知列表可以用键盘打开详情', async ({ page }) => {
     await login(page)
     await page.getByRole('menuitem', { name: '通知公告' }).click()

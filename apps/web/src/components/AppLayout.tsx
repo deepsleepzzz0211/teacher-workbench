@@ -12,7 +12,7 @@ import {
   UserOutlined,
 } from '@ant-design/icons'
 import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom'
-import { Suspense, type CSSProperties } from 'react'
+import { Suspense, useEffect, useRef, useState, type CSSProperties } from 'react'
 import { Spin } from 'antd'
 
 import { useAuth } from '@/auth/AuthContext'
@@ -58,6 +58,28 @@ export function AppLayout(): React.ReactNode {
   const handleLogout = (): void => {
     logout()
     navigate('/login', { replace: true })
+  }
+
+  const [userMenuOpen, setUserMenuOpen] = useState(false)
+  const openedByKeyboardRef = useRef(false)
+
+  // AntD 菜单项是 tabindex="-1"，focus 不会自己进入菜单，键盘用户因此走不到"退出登录"。
+  // 仅在本次展开由键盘发起时把焦点送进去；悬停/点击也抢焦点会破坏鼠标路径。
+  useEffect(() => {
+    if (!userMenuOpen || !openedByKeyboardRef.current) return
+    openedByKeyboardRef.current = false
+    document.querySelector<HTMLElement>('.user-menu-dropdown .ant-dropdown-menu-item')?.focus()
+  }, [userMenuOpen])
+
+  const handleUserMenuKeyDown = (event: React.KeyboardEvent<HTMLButtonElement>): void => {
+    if (event.key === 'ArrowDown') {
+      openedByKeyboardRef.current = true
+      setUserMenuOpen(true)
+      event.preventDefault()
+      return
+    }
+    // Enter / 空格走按钮自身的 click 展开，这里只做标记，不拦截默认行为
+    if (event.key === 'Enter' || event.key === ' ') openedByKeyboardRef.current = true
   }
 
   return (
@@ -117,7 +139,10 @@ export function AppLayout(): React.ReactNode {
           </Typography.Text>
 
           <Dropdown
+            open={userMenuOpen}
+            onOpenChange={setUserMenuOpen}
             trigger={['click', 'hover']}
+            overlayClassName="user-menu-dropdown"
             menu={{
               items: [
                 {
@@ -129,7 +154,12 @@ export function AppLayout(): React.ReactNode {
               ],
             }}
           >
-            <button type="button" data-testid="user-menu" style={USER_MENU_STYLE}>
+            <button
+              type="button"
+              data-testid="user-menu"
+              style={USER_MENU_STYLE}
+              onKeyDown={handleUserMenuKeyDown}
+            >
               <Avatar size={32} icon={<UserOutlined />} style={{ background: '#1d4ed8' }} />
               <span>{user?.name}</span>
               <Typography.Text type="secondary" style={{ fontSize: 12 }}>
