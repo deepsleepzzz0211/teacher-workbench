@@ -6,10 +6,10 @@ build/
 .vite/
 coverage/
 
-# 环境变量（本仓库为演示项目，保留 .env.example，忽略真实 .env）
+# 环境变量 —— 忽略全部变体，仅保留 .env.example 模板（注意否定规则必须在其后）
 .env
-.env.local
-.env.*.local
+.env.*
+!.env.example
 
 # 测试与运行产物
 playwright-report/

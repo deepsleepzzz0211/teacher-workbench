@@ -11,7 +11,7 @@ export const MIGRATIONS_DIR = resolve(here, '../../drizzle')
  * 极简迁移器：按文件名顺序执行 drizzle/*.sql，并用 _migrations 表记录已执行文件。
  * 每个文件在独立事务中执行，失败即回滚，避免半套结构。
  *
- * 之所以不用 drizzle-kit 的运行时迁移，是因为原生的 SQL 文件更易审计，
+ * 迁移以手写 SQL 为唯一事实来源：纯 SQL 更易审计，
  * 且测试环境需要能反复"清库后重放"。
  */
 export async function migrate(pool: Pool): Promise<string[]> {
