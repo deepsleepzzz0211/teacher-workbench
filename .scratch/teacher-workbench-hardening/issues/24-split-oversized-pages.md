@@ -4,7 +4,39 @@
 
 **Blocked by:** 20 [migrate] 页面迁移到共享构建块
 
-**Status:** ready-for-agent
+**Status:** in-progress（教学工作量页已完成大部分拆分，但仍高于 300 行门槛；其余三页未开始）
+
+## 已完成：教学工作量页（895 → 464 行）
+
+按职责拆出 `apps/web/src/pages/workload/`：
+
+| 模块 | 内容 |
+|---|---|
+| `types.ts` | `TaskFormValues`、`ItemFormValues`、`TaskPreview`、`EMPTY_TASK_PREVIEW` |
+| `TaskPreviewBox.tsx` | 折算预览独立组件 |
+| `TaskPreviewBox.test.tsx` | **该组件自己的 4 条测试**（课程类型系数 / 超过 40 人 / 重复课 0.90 / 未填时显示 0 而非 NaN） |
+| `chartOptions.ts` | `buildWeeklyOption`、`buildCourseTypeOption` |
+| `taskColumns.tsx` | `buildTaskColumns({ onEdit, onDelete })` |
+| `itemColumns.tsx` | `buildItemColumns({ onDelete })` |
+| `TaskFormModal.tsx` | 授课任务弹窗 |
+| `ItemFormModal.tsx` | 其它工作量弹窗 |
+
+列定义改为**接收回调的工厂**，把"编辑/删除"的意图作为参数注入，避免列定义反向闭包依赖页面状态。
+
+## 未完成
+
+- **教学工作量页仍为 464 行**，未达到 300 行门槛。还可继续抽出"查询与失效逻辑"（hooks）与"汇总卡/进度区块"两处，预计可降到 ~340 行。
+- **成果页（479）、申请页（466）、看板页（416）三页未开始拆分。**
+
+## 诚实说明：为什么没有把这一票勾完
+
+拆分本身是纯结构重构、每一步都可以安全验证（每步都跑了 typecheck + lint + 测试）。但要让**四个页面全部**降到 300 行以下，需要的改动量远超前五张工单之和；在剩余额度内无法完成并验证，因此**没有把未做的部分标记为完成**。
+
+停在这里是刻意选择：当前状态是可运行、可测试、已提交的完整状态（296 条单元/集成/组件 + 27 条端到端全通过），而不是一个改到一半的中间态。
+
+## 验证（本次已完成部分）
+
+`typecheck` 退出码 0、`lint` 退出码 0、**83 + 160 + 53 = 296 条测试全通过**（前端 49 → 53，新增 4 条预览组件测试）、`pnpm build` 成功、真实浏览器端到端 **27 passed（无 flaky）**。
 
 - [ ] 教学工作量页拆分完成：表单弹窗、表格列定义、图表配置、查询与失效逻辑各自独立
 - [ ] 折算预览作为独立组件，并有对应测试
