@@ -12,7 +12,8 @@ import {
   UserOutlined,
 } from '@ant-design/icons'
 import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom'
-import type { CSSProperties } from 'react'
+import { Suspense, type CSSProperties } from 'react'
+import { Spin } from 'antd'
 
 import { useAuth } from '@/auth/AuthContext'
 import { ROLE_LABELS } from '@tw/shared'
@@ -141,7 +142,15 @@ export function AppLayout(): React.ReactNode {
         <Content style={{ padding: 24 }}>
           <div style={{ maxWidth: 1360, margin: '0 auto' }}>
             <ErrorBoundary key={location.pathname} onReset={() => navigate('/')}>
-              <Outlet />
+              <Suspense
+                fallback={
+                  <div style={{ display: 'grid', placeItems: 'center', minHeight: 240 }}>
+                    <Spin />
+                  </div>
+                }
+              >
+                <Outlet />
+              </Suspense>
             </ErrorBoundary>
           </div>
         </Content>

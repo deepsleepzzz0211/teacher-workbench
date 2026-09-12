@@ -1,16 +1,24 @@
 import { useEffect, useRef } from 'react'
 
-import * as echarts from 'echarts'
+import { BarChart, PieChart } from 'echarts/charts'
+import { GridComponent, LegendComponent, TooltipComponent } from 'echarts/components'
+import * as echarts from 'echarts/core'
+import { CanvasRenderer } from 'echarts/renderers'
+import type { EChartsOption } from 'echarts'
+
+echarts.use([BarChart, PieChart, GridComponent, LegendComponent, TooltipComponent, CanvasRenderer])
+
+type ChartInstance = ReturnType<typeof echarts.init>
 
 export function EChart({
   option,
   height = 280,
 }: {
-  option: echarts.EChartsOption
+  option: EChartsOption
   height?: number
 }): React.ReactNode {
   const containerRef = useRef<HTMLDivElement>(null)
-  const chartRef = useRef<echarts.ECharts | null>(null)
+  const chartRef = useRef<ChartInstance | null>(null)
 
   useEffect(() => {
     if (!containerRef.current) return undefined
