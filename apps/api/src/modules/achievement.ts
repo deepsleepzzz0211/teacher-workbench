@@ -160,6 +160,8 @@ export async function achievementRoutes(app: FastifyInstance): Promise<void> {
     if (!existing || existing.teacherId !== request.currentUser.sub) throw notFound('成果记录不存在')
 
     const level = input.level ?? (existing.level as AchievementLevel)
+    const scoreExplicitlyProvided = input.score !== undefined
+    const levelChanged = input.level !== undefined
 
     await db
       .update(achievements)
@@ -170,7 +172,9 @@ export async function achievementRoutes(app: FastifyInstance): Promise<void> {
         ...(input.role !== undefined ? { role: input.role } : {}),
         ...(input.achievedOn !== undefined ? { achievedOn: input.achievedOn } : {}),
         ...(input.description !== undefined ? { description: input.description } : {}),
-        score: input.score ?? calcAchievementPoints(level),
+        ...(scoreExplicitlyProvided || levelChanged
+          ? { score: input.score ?? calcAchievementPoints(level) }
+          : {}),
       })
       .where(eq(achievements.id, id))
 

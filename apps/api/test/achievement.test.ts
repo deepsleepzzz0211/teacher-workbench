@@ -115,6 +115,97 @@ describe('教科研成果模块', () => {
     await app.inject({ method: 'DELETE', url: `/api/achievements/${created.id}`, headers })
   })
 
+  it('只修改其它字段时，手填分值保持不变（回归）', async () => {
+    const created = (
+      await app.inject({
+        method: 'POST',
+        url: '/api/achievements',
+        headers,
+        payload: {
+          category: 'paper',
+          title: '手填分值保护回归用例',
+          level: 'school',
+          role: '独著',
+          achievedOn: '2026-09-05',
+          score: 42,
+        },
+      })
+    ).json<Achievement>()
+    expect(created.score).toBe(42)
+
+    const patched = await app.inject({
+      method: 'PATCH',
+      url: `/api/achievements/${created.id}`,
+      headers,
+      payload: { title: '手填分值保护回归用例（已更正标题）', description: '仅补充说明' },
+    })
+
+    expect(patched.statusCode).toBe(200)
+    expect(patched.json<Achievement>().score).toBe(42)
+
+    await app.inject({ method: 'DELETE', url: `/api/achievements/${created.id}`, headers })
+  })
+
+  it('改动级别且未手填分值时，分值按新级别自动折算', async () => {
+    const created = (
+      await app.inject({
+        method: 'POST',
+        url: '/api/achievements',
+        headers,
+        payload: {
+          category: 'textbook',
+          title: '级别变更折算回归用例',
+          level: 'school',
+          role: '主编',
+          achievedOn: '2026-09-06',
+        },
+      })
+    ).json<Achievement>()
+    expect(created.score).toBe(3)
+
+    const patched = await app.inject({
+      method: 'PATCH',
+      url: `/api/achievements/${created.id}`,
+      headers,
+      payload: { level: 'provincial' },
+    })
+
+    expect(patched.statusCode).toBe(200)
+    expect(patched.json<Achievement>().score).toBe(15)
+
+    await app.inject({ method: 'DELETE', url: `/api/achievements/${created.id}`, headers })
+  })
+
+  it('改动级别但同时手填分值时，以手填值为准', async () => {
+    const created = (
+      await app.inject({
+        method: 'POST',
+        url: '/api/achievements',
+        headers,
+        payload: {
+          category: 'textbook',
+          title: '手填优先回归用例',
+          level: 'school',
+          role: '主编',
+          achievedOn: '2026-09-07',
+          score: 6,
+        },
+      })
+    ).json<Achievement>()
+
+    const patched = await app.inject({
+      method: 'PATCH',
+      url: `/api/achievements/${created.id}`,
+      headers,
+      payload: { level: 'provincial', score: 88 },
+    })
+
+    expect(patched.statusCode).toBe(200)
+    expect(patched.json<Achievement>().score).toBe(88)
+
+    await app.inject({ method: 'DELETE', url: `/api/achievements/${created.id}`, headers })
+  })
+
   it('非法类别返回 400', async () => {
     const response = await app.inject({
       method: 'POST',
