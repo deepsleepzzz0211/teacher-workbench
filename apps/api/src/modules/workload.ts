@@ -211,10 +211,25 @@ export async function workloadRoutes(app: FastifyInstance): Promise<void> {
     const [existing] = await db.select().from(teachingTasks).where(eq(teachingTasks.id, id)).limit(1)
     if (!existing || existing.teacherId !== request.currentUser.sub) throw notFound('授课任务不存在')
 
-    const termId = input.termId ?? existing.termId
-    const courseId = input.courseId ?? existing.courseId
-    const classId = input.classId ?? existing.classId
-    await ensureTermCourseClass(termId, courseId, classId)
+    const merged = {
+      termId: input.termId ?? existing.termId,
+      courseId: input.courseId ?? existing.courseId,
+      classId: input.classId ?? existing.classId,
+      location: input.location ?? existing.location,
+      weekday: input.weekday ?? existing.weekday,
+      startSection: input.startSection ?? existing.startSection,
+      endSection: input.endSection ?? existing.endSection,
+      weekStart: input.weekStart ?? existing.weekStart,
+      weekEnd: input.weekEnd ?? existing.weekEnd,
+      weekParity: input.weekParity ?? existing.weekParity,
+      totalHours: input.totalHours ?? existing.totalHours,
+      studentCount: input.studentCount ?? existing.studentCount,
+      repeatIndex: input.repeatIndex ?? existing.repeatIndex,
+      remark: input.remark ?? existing.remark,
+    }
+
+    parseOrThrow(teachingTaskCreateSchema, merged)
+    await ensureTermCourseClass(merged.termId, merged.courseId, merged.classId)
 
     await db
       .update(teachingTasks)

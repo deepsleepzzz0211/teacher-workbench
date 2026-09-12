@@ -258,6 +258,121 @@ describe('教学工作量模块', () => {
     })
   })
 
+  describe('授课任务更新的区间校验', () => {
+    let taskId: string
+
+    beforeAll(async () => {
+      const created = await app.inject({
+        method: 'POST',
+        url: '/api/workload/tasks',
+        headers,
+        payload: {
+          termId: catalog.termId,
+          courseId: catalog.courseId,
+          classId: catalog.classId,
+          weekday: 4,
+          startSection: 3,
+          endSection: 4,
+          weekStart: 2,
+          weekEnd: 16,
+          weekParity: 'all',
+          totalHours: 32,
+          studentCount: 40,
+        },
+      })
+      expect(created.statusCode).toBe(201)
+      taskId = created.json<TeachingTask>().id
+    })
+
+    afterAll(async () => {
+      await app.inject({ method: 'DELETE', url: `/api/workload/tasks/${taskId}`, headers })
+    })
+
+    it('更新时结束节次早于开始节次被拒绝', async () => {
+      const response = await app.inject({
+        method: 'PATCH',
+        url: `/api/workload/tasks/${taskId}`,
+        headers,
+        payload: { endSection: 2 },
+      })
+      expect(response.statusCode).toBe(400)
+      expect(response.json<{ message: string }>().message).toContain('结束节次')
+    })
+
+    it('更新时结束周早于开始周被拒绝', async () => {
+      const response = await app.inject({
+        method: 'PATCH',
+        url: `/api/workload/tasks/${taskId}`,
+        headers,
+        payload: { weekEnd: 1 },
+      })
+      expect(response.statusCode).toBe(400)
+      expect(response.json<{ message: string }>().message).toContain('结束周次')
+    })
+
+    it('只改开始节次、使原有结束节次变得非法时同样被拒绝', async () => {
+      const response = await app.inject({
+        method: 'PATCH',
+        url: `/api/workload/tasks/${taskId}`,
+        headers,
+        payload: { startSection: 6 },
+      })
+      expect(response.statusCode).toBe(400)
+      expect(response.json<{ message: string }>().message).toContain('结束节次')
+    })
+
+    it('同一请求内同时给出倒置的节次区间也被拒绝', async () => {
+      const response = await app.inject({
+        method: 'PATCH',
+        url: `/api/workload/tasks/${taskId}`,
+        headers,
+        payload: { startSection: 8, endSection: 5 },
+      })
+      expect(response.statusCode).toBe(400)
+      expect(response.json<{ message: string }>().message).toContain('结束节次')
+    })
+
+    it('仅改动其它字段时正常通过', async () => {
+      const response = await app.inject({
+        method: 'PATCH',
+        url: `/api/workload/tasks/${taskId}`,
+        headers,
+        payload: { totalHours: 40, location: 'B301' },
+      })
+      expect(response.statusCode).toBe(200)
+      const updated = response.json<TeachingTask>()
+      expect(updated.totalHours).toBe(40)
+      expect(updated.location).toBe('B301')
+    })
+
+    it('合法的区间调整正常通过', async () => {
+      const response = await app.inject({
+        method: 'PATCH',
+        url: `/api/workload/tasks/${taskId}`,
+        headers,
+        payload: { startSection: 3, endSection: 6, weekStart: 2, weekEnd: 18 },
+      })
+      expect(response.statusCode).toBe(200)
+      const updated = response.json<TeachingTask>()
+      expect(updated.endSection).toBe(6)
+      expect(updated.weekEnd).toBe(18)
+    })
+
+    it('被拒绝的更新不会写坏原有数据', async () => {
+      await app.inject({
+        method: 'PATCH',
+        url: `/api/workload/tasks/${taskId}`,
+        headers,
+        payload: { endSection: 1 },
+      })
+
+      const tasks = await listTasks()
+      const task = tasks.find((item) => item.id === taskId)!
+      expect(task.startSection).toBe(3)
+      expect(task.endSection).toBe(6)
+    })
+  })
+
   describe('其它工作量', () => {
     it('列表返回 4 条并带出折算学时', async () => {
       const response = await app.inject({ method: 'GET', url: '/api/workload/items', headers })
