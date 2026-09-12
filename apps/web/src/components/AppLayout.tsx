@@ -17,7 +17,7 @@ import { Spin } from 'antd'
 
 import { useAuth } from '@/auth/AuthContext'
 import { ROLE_LABELS } from '@tw/shared'
-import { SIDER_BG } from '@/theme'
+import { palette } from '@/theme'
 import { ErrorBoundary } from '@/components/ErrorBoundary'
 
 const { Header, Sider, Content } = Layout
@@ -92,7 +92,7 @@ export function AppLayout(): React.ReactNode {
             alignItems: 'center',
             gap: 10,
             padding: '0 20px',
-            color: '#fff',
+            color: palette.surface,
           }}
         >
           <div
@@ -100,7 +100,7 @@ export function AppLayout(): React.ReactNode {
               width: 30,
               height: 30,
               borderRadius: 8,
-              background: 'linear-gradient(135deg,#1d4ed8,#38bdf8)',
+              background: `linear-gradient(135deg,${palette.primary},${palette.primaryLight})`,
               display: 'grid',
               placeItems: 'center',
               fontWeight: 700,
@@ -117,7 +117,7 @@ export function AppLayout(): React.ReactNode {
           mode="inline"
           selectedKeys={[selectedKey]}
           items={MENU_ITEMS}
-          style={{ borderInlineEnd: 'none', background: SIDER_BG }}
+          style={{ borderInlineEnd: 'none', background: palette.sider }}
         />
       </Sider>
 
@@ -128,7 +128,7 @@ export function AppLayout(): React.ReactNode {
             alignItems: 'center',
             justifyContent: 'space-between',
             padding: '0 24px',
-            borderBottom: '1px solid #eef1f7',
+            borderBottom: `1px solid ${palette.borderSubtle}`,
             position: 'sticky',
             top: 0,
             zIndex: 10,
@@ -160,7 +160,7 @@ export function AppLayout(): React.ReactNode {
               style={USER_MENU_STYLE}
               onKeyDown={handleUserMenuKeyDown}
             >
-              <Avatar size={32} icon={<UserOutlined />} style={{ background: '#1d4ed8' }} />
+              <Avatar size={32} icon={<UserOutlined />} style={{ background: palette.primary }} />
               <span>{user?.name}</span>
               <Typography.Text type="secondary" style={{ fontSize: 12 }}>
                 {user ? ROLE_LABELS[user.role] : ''}

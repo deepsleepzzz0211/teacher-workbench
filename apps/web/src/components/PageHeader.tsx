@@ -2,6 +2,8 @@ import type { ReactNode } from 'react'
 
 import { Card, Flex, Typography } from 'antd'
 
+import { palette } from '@/theme'
+
 export function PageHeader({
   title,
   description,
@@ -46,10 +48,10 @@ export function StatCard({
   tone?: 'default' | 'primary' | 'success' | 'warning'
 }): ReactNode {
   const accent: Record<string, string> = {
-    default: '#1d4ed8',
-    primary: '#1d4ed8',
-    success: '#16a34a',
-    warning: '#d97706',
+    default: palette.primary,
+    primary: palette.primary,
+    success: palette.success,
+    warning: palette.warning,
   }
 
   return (
@@ -65,7 +67,7 @@ export function StatCard({
           {prefix}
           {value}
           {suffix ? (
-            <span style={{ fontSize: 14, fontWeight: 400, marginLeft: 6, color: '#64748b' }}>{suffix}</span>
+            <span style={{ fontSize: 14, fontWeight: 400, marginLeft: 6, color: palette.textMuted }}>{suffix}</span>
           ) : null}
         </Typography.Title>
         {hint ? (

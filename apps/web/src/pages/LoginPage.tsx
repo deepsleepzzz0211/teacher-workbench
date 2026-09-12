@@ -8,6 +8,7 @@ import { loginSchema } from '@tw/shared'
 
 import { getErrorMessage } from '@/api/client'
 import { useAuth } from '@/auth/AuthContext'
+import { palette } from '@/theme'
 
 interface LoginFormValues {
   username: string
@@ -64,7 +65,7 @@ export function LoginPage(): React.ReactNode {
         minHeight: '100vh',
         display: 'grid',
         placeItems: 'center',
-        background: 'linear-gradient(135deg,#0b1b33 0%,#123a7a 55%,#1d4ed8 100%)',
+        background: `linear-gradient(135deg,${palette.sider} 0%,${palette.primaryDark} 55%,${palette.primary} 100%)`,
         padding: 24,
       }}
     >
@@ -76,10 +77,10 @@ export function LoginPage(): React.ReactNode {
                 width: 38,
                 height: 38,
                 borderRadius: 10,
-                background: 'linear-gradient(135deg,#1d4ed8,#38bdf8)',
+                background: `linear-gradient(135deg,${palette.primary},${palette.primaryLight})`,
                 display: 'grid',
                 placeItems: 'center',
-                color: '#fff',
+                color: palette.surface,
                 fontWeight: 700,
                 fontSize: 18,
               }}

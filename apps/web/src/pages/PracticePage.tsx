@@ -34,6 +34,7 @@ import { PageHeader, StatCard } from '@/components/PageHeader'
 import { type Columns, FormModal, StatRow, useConfirmDelete } from '@/components/blocks'
 import { useUnsavedChanges } from '@/hooks/useUnsavedChanges'
 import { formatDate } from '@/utils/format'
+import { palette } from '@/theme'
 
 interface PracticeFormValues {
   company: string
@@ -206,7 +207,7 @@ export function PracticePage(): React.ReactNode {
             <Progress
               percent={Math.min(100, Math.round(rate * 1000) / 10)}
               status={rate >= 1 ? 'success' : 'active'}
-              strokeColor={rate >= 1 ? '#16a34a' : '#d97706'}
+              strokeColor={rate >= 1 ? palette.success : palette.warning}
             />
             <Typography.Text type="secondary" style={{ fontSize: 12 }}>
               近 {PRACTICE_WINDOW_YEARS} 年累计 {progress?.accumulatedDays ?? 0} 天 / 要求{' '}

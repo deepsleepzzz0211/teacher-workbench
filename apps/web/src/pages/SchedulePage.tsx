@@ -15,14 +15,15 @@ import { catalogApi, scheduleApi } from '@/api/endpoints'
 import { PageHeader, StatCard } from '@/components/PageHeader'
 import { StatRow } from '@/components/blocks'
 import { sectionRange } from '@/utils/format'
+import { palette } from '@/theme'
 
 const TEACHING_WEEKDAYS = [1, 2, 3, 4, 5]
 
 const COURSE_TYPE_COLORS: Record<CourseType, string> = {
-  theory: '#1d4ed8',
-  integrated: '#0ea5e9',
-  practice: '#16a34a',
-  internship: '#d97706',
+  theory: palette.primary,
+  integrated: palette.chartSeries,
+  practice: palette.success,
+  internship: palette.warning,
 }
 
 const WEEK_OPTIONS = Array.from({ length: MAX_WEEKS }, (_, index) => ({
@@ -153,8 +154,8 @@ export function SchedulePage(): React.ReactNode {
                 <Col key={weekday} xs={24} sm={12} lg={8} xl={4} flex="1 1 0">
                   <div
                     style={{
-                      background: '#f8fafc',
-                      border: '1px solid #eef1f7',
+                      background: palette.surfaceMuted,
+                      border: `1px solid ${palette.borderSubtle}`,
                       borderRadius: 10,
                       padding: 12,
                       minHeight: 200,
@@ -178,7 +179,7 @@ export function SchedulePage(): React.ReactNode {
                           <div
                             key={entry.taskId}
                             style={{
-                              background: '#fff',
+                              background: palette.surface,
                               borderLeft: `4px solid ${COURSE_TYPE_COLORS[entry.courseType]}`,
                               borderRadius: 6,
                               padding: '8px 10px',

@@ -19,6 +19,7 @@ import { PageHeader, StatCard } from '@/components/PageHeader'
 import { StatRow } from '@/components/blocks'
 import { TodoPriorityTag } from '@/components/tags'
 import { formatDate, formatHours, formatPercent, sectionRange, weekdayLabel } from '@/utils/format'
+import { palette } from '@/theme'
 
 const WEEKDAYS = [1, 2, 3, 4, 5]
 
@@ -71,7 +72,7 @@ export function DashboardPage(): React.ReactNode {
       {
         type: 'bar' as const,
         barWidth: 26,
-        itemStyle: { color: '#1d4ed8', borderRadius: [6, 6, 0, 0] },
+        itemStyle: { color: palette.primary, borderRadius: [6, 6, 0, 0] },
         data: Object.entries(data.achievement.byCategory)
           .filter(([, count]) => count > 0)
           .map(([, count]) => count),
@@ -148,7 +149,7 @@ export function DashboardPage(): React.ReactNode {
             ) : (
               <Timeline
                 items={data.today.courses.map((course) => ({
-                  color: '#1d4ed8',
+                  color: palette.primary,
                   children: (
                     <Flex vertical gap={2}>
                       <Flex gap={8} align="center" wrap>
@@ -180,11 +181,11 @@ export function DashboardPage(): React.ReactNode {
                     <Col key={weekday} xs={24} sm={12} md={8} lg={4} flex="1 1 0">
                       <div
                         style={{
-                          background: '#f8fafc',
+                          background: palette.surfaceMuted,
                           borderRadius: 8,
                           padding: 10,
                           minHeight: 96,
-                          border: '1px solid #eef1f7',
+                          border: `1px solid ${palette.borderSubtle}`,
                         }}
                       >
                         <Typography.Text strong style={{ fontSize: 12 }}>
@@ -200,8 +201,8 @@ export function DashboardPage(): React.ReactNode {
                               <div
                                 key={course.taskId}
                                 style={{
-                                  background: '#fff',
-                                  borderLeft: '3px solid #1d4ed8',
+                                  background: palette.surface,
+                                  borderLeft: `3px solid ${palette.primary}`,
                                   borderRadius: 4,
                                   padding: '6px 8px',
                                 }}
@@ -241,7 +242,7 @@ export function DashboardPage(): React.ReactNode {
                   <Progress
                     percent={Math.min(100, Math.round(rate * 1000) / 10)}
                     status={rate >= 1 ? 'success' : 'active'}
-                    strokeColor="#1d4ed8"
+                    strokeColor={palette.primary}
                   />
                   <Typography.Text type="secondary" style={{ fontSize: 12 }}>
                     {rate >= 1
@@ -301,7 +302,7 @@ export function DashboardPage(): React.ReactNode {
               <Progress
                 percent={Math.min(100, Math.round(data.practice.rate * 1000) / 10)}
                 status={data.practice.rate >= 1 ? 'success' : 'active'}
-                strokeColor={data.practice.rate >= 1 ? '#16a34a' : '#d97706'}
+                strokeColor={data.practice.rate >= 1 ? palette.success : palette.warning}
               />
               <Typography.Text type="secondary" style={{ fontSize: 12 }}>
                 近 5 年累计 {data.practice.accumulatedDays} 天 / 要求 {data.practice.requiredDays} 天

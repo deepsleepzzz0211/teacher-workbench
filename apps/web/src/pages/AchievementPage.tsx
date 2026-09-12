@@ -45,6 +45,7 @@ import { type Columns, FormModal, StatRow, useConfirmDelete } from '@/components
 import { LevelTag } from '@/components/tags'
 import { useUnsavedChanges } from '@/hooks/useUnsavedChanges'
 import { formatDate } from '@/utils/format'
+import { palette } from '@/theme'
 
 const CATEGORY_OPTIONS = ACHIEVEMENT_CATEGORIES.map((value) => ({
   label: ACHIEVEMENT_CATEGORY_LABELS[value],
@@ -152,7 +153,7 @@ export function AchievementPage(): React.ReactNode {
         {
           type: 'bar' as const,
           barWidth: 28,
-          itemStyle: { color: '#1d4ed8', borderRadius: [6, 6, 0, 0] },
+          itemStyle: { color: palette.primary, borderRadius: [6, 6, 0, 0] },
           data: entries.map(([, count]) => count),
         },
       ],
@@ -169,7 +170,7 @@ export function AchievementPage(): React.ReactNode {
           type: 'pie' as const,
           radius: ['42%', '68%'],
           center: ['50%', '44%'],
-          itemStyle: { borderColor: '#fff', borderWidth: 2 },
+          itemStyle: { borderColor: palette.surface, borderWidth: 2 },
           label: { formatter: '{b}: {c}' },
           data: entries.map(([key, count]) => ({
             name: ACHIEVEMENT_LEVEL_LABELS[key as AchievementLevel],

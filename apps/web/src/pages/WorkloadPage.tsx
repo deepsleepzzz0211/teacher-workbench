@@ -51,6 +51,7 @@ import { EChart } from '@/components/EChart'
 import { PageHeader, StatCard } from '@/components/PageHeader'
 import { type Columns, FormModal, StatRow, useConfirmDelete } from '@/components/blocks'
 import { useUnsavedChanges } from '@/hooks/useUnsavedChanges'
+import { palette } from '@/theme'
 
 const WEEKDAY_OPTIONS = WEEKDAY_LABELS.map((label, index) => ({ label, value: index + 1 }))
 const PARITY_OPTIONS = WEEK_PARITIES.map((value) => ({ label: WEEK_PARITY_LABELS[value], value }))
@@ -216,7 +217,7 @@ export function WorkloadPage(): React.ReactNode {
         {
           type: 'bar' as const,
           data: (summary?.weekly ?? []).map((entry) => entry.hours),
-          itemStyle: { color: '#1d4ed8', borderRadius: [4, 4, 0, 0] },
+          itemStyle: { color: palette.primary, borderRadius: [4, 4, 0, 0] },
         },
       ],
     }),
@@ -239,7 +240,7 @@ export function WorkloadPage(): React.ReactNode {
           type: 'bar' as const,
           barWidth: 36,
           data: entries.map(([, hours]) => hours),
-          itemStyle: { color: '#0ea5e9', borderRadius: [6, 6, 0, 0] },
+          itemStyle: { color: palette.chartSeries, borderRadius: [6, 6, 0, 0] },
         },
       ],
     }
@@ -563,7 +564,7 @@ export function WorkloadPage(): React.ReactNode {
             <Progress
               percent={Math.min(100, Math.round(rate * 1000) / 10)}
               status={rate >= 1 ? 'success' : 'active'}
-              strokeColor="#1d4ed8"
+              strokeColor={palette.primary}
             />
             <Typography.Text type="secondary" style={{ fontSize: 12 }}>
               {rate >= 1
@@ -834,7 +835,7 @@ export function WorkloadPage(): React.ReactNode {
           <Input />
         </Form.Item>
 
-        <Card size="small" style={{ background: '#f8fafc' }}>
+          <Card size="small" style={{ background: palette.surfaceMuted }}>
           <Typography.Text type="secondary" style={{ fontSize: 12 }}>
             折算规则
           </Typography.Text>
@@ -874,16 +875,16 @@ function TaskPreviewBox({ preview }: { preview: TaskPreview }): React.ReactNode 
   const baseCoefficient = COURSE_TYPE_COEFFICIENTS[preview.courseType]
 
   return (
-    <Card size="small" style={{ background: '#f8fafc', borderColor: '#dbeafe' }}>
+    <Card size="small" style={{ background: palette.surfaceMuted, borderColor: palette.primarySoftBorder }}>
       <Flex justify="space-between" align="center" wrap gap={8}>
         <Typography.Text type="secondary" style={{ fontSize: 12 }}>
           折算预览
         </Typography.Text>
-        <Typography.Text strong style={{ fontSize: 16, color: '#1d4ed8' }}>
+        <Typography.Text strong style={{ fontSize: 16, color: palette.primary }}>
           {effectiveHours.toFixed(1)} 折算学时
         </Typography.Text>
       </Flex>
-      <div style={{ marginTop: 6, fontSize: 12, lineHeight: 1.9, color: '#475569' }}>
+      <div style={{ marginTop: 6, fontSize: 12, lineHeight: 1.9, color: palette.textSecondary }}>
         {detail.totalHours || 0} 学时 × {baseCoefficient.toFixed(2)}（{COURSE_TYPE_LABELS[preview.courseType]}）×{' '}
         {detail.classSizeFactor.toFixed(2)}（{preview.studentCount || 0} 人）×{' '}
         {detail.repeatFactor.toFixed(2)}（
