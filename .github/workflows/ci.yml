@@ -67,6 +67,21 @@ jobs:
       - name: 构建
         run: pnpm build
 
+      - name: 验证后端产物可独立启动
+        run: |
+          cd apps/api
+          node dist/server.js > /tmp/api-artifact.log 2>&1 &
+          for i in $(seq 1 30); do
+            if curl -fsS http://127.0.0.1:3000/health > /dev/null; then
+              echo "后端产物健康检查通过"
+              exit 0
+            fi
+            sleep 1
+          done
+          echo "后端产物未能在 30 秒内通过健康检查"
+          cat /tmp/api-artifact.log
+          exit 1
+
   e2e:
     name: 端到端测试
     runs-on: ubuntu-latest

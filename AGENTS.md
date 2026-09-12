@@ -10,7 +10,7 @@
 
 **跨层数据一律经 `packages/shared` 的 Zod 契约校验**，前后端共用同一份 schema，接口形状因此不会与实现漂移。
 
-**后端没有编译产物。** 后端始终由 tsx 直接运行源码，"构建"对后端只是类型检查——改后端不需要先构建。
+**开发期直接用 tsx 运行源码，但后端也有真实产物。** `pnpm dev` / `pnpm start` 走 tsx，改后端不需要先构建，本地体验不变；`pnpm --filter @tw/api build` 另外用 esbuild 产出 `apps/api/dist/`（`server.js` 与三个数据库入口），可用 `node dist/server.js` 直接启动，**不需要 TypeScript 运行时**。第三方依赖保持外部引用（由 node_modules 提供），但 `@tw/shared` 必须内联——它的 `exports` 指向 `.ts` 源码，Node 运行时加载不了。运行产物时注意迁移目录仍指向 `apps/api/drizzle`，所以产物要留在 `apps/api/dist` 下（`outbase=src` 保证了这一点）。
 
 **集成测试跑在独立的 `*_test` 库上**，测试文件启动时会重建 public schema。测试辅助里带安全阀：连到非 `_test` 库会立刻报错。这是防呆设计，不要绕过。
 
@@ -18,7 +18,7 @@
 
 **`pnpm e2e` 会先应用迁移、再重置演示数据**，本地手工改过的数据会被清掉；正因如此，它在全新的数据库（首次克隆、CI 的服务容器）上也能自足运行。
 
-**CI 是强制的质量门。** 推送与 PR 都会依次执行 `typecheck` → `test` → `build`，全部通过后才跑端到端；任一步失败即整体失败、后续步骤不再执行。所以提交前至少本地跑一遍 `pnpm typecheck` 与 `pnpm test`。
+**CI 是强制的质量门。** 推送与 PR 都会依次执行 `typecheck` → `lint` → 未使用依赖检查 → `test` → `build`，随后**实际启动后端产物并断言健康检查**，全部通过后才跑端到端；任一步失败即整体失败、后续步骤不再执行。所以提交前至少本地跑一遍 `pnpm typecheck`、`pnpm lint` 与 `pnpm test`。
 
 **数据库默认假设本机已有对应角色与两个库**，连接信息在 `.env`。换机器要改 `.env`，并确认测试库同样存在。
 

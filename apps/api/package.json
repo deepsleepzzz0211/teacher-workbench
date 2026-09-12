@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "tsx watch src/server.ts",
     "start": "tsx src/server.ts",
-    "build": "tsc --noEmit",
+    "start:prod": "node dist/server.js",
+    "build": "tsc --noEmit && node scripts/build.mjs",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
@@ -28,6 +29,7 @@
   "devDependencies": {
     "@types/node": "^24.10.1",
     "@types/pg": "^8.15.6",
+    "esbuild": "^0.28.2",
     "tsx": "^4.23.13",
     "typescript": "^5.9.3",
     "vitest": "^3.2.7"

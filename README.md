@@ -132,10 +132,24 @@ pnpm dev
 | `pnpm lint:fix` | ESLint 自动修复 |
 | `pnpm lint:deps` | 未使用依赖检查（knip，CI 门禁之一） |
 | `pnpm format` / `format:check` | Prettier 格式化 / 检查（暂未纳入门禁，见「已知边界」） |
+| `pnpm build` | 构建全部产物：后端 `apps/api/dist`、共享契约、前端静态文件 |
+| `pnpm --filter @tw/api start:prod` | 用 `node` 直接启动后端构建产物（不经 TypeScript 运行时） |
 | `pnpm e2e` | 端到端测试（会先自动启动前后端） |
 | `pnpm e2e:install` | 首次运行前安装 Chromium |
 | `pnpm capture` | 重新采集 `docs/screenshots` 下的界面截图 |
 | `pnpm db:migrate` / `db:seed` / `db:reset` | 迁移 / 灌演示数据 / 重建并灌数据 |
+
+### 后端产物
+
+开发期后端由 tsx 直接运行源码（`pnpm dev` / `pnpm start`），改代码不需要先构建。
+`pnpm build` 另外用 esbuild 打包出 `apps/api/dist/`（`server.js` 与 `db/migrate|seed|reset.js` 三个入口），
+可用 `node dist/server.js` 直接启动，**不需要 TypeScript 运行时**。
+
+第三方依赖保持外部引用（由 `node_modules` 提供，属生产依赖）；`@tw/shared` 则被**内联**进产物——
+它的 `exports` 指向 `.ts` 源码，Node 运行时无法加载。迁移用的 SQL 文件不进产物，仍从
+`apps/api/drizzle` 读取，因此产物需留在 `apps/api/dist` 下（`outbase=src` 保证了这个相对位置）。
+
+CI 会在构建后**实际启动该产物并断言 `/health` 返回 200**，避免"构建通过但根本起不来"。
 
 ---
 
@@ -247,6 +261,7 @@ teacher-workbench/
 - 学期基本工作量（240 折算学时）与各项折算系数是按通行口径设定的默认值，实际落地时需按学校制度调整 `packages/shared/src/constants.ts`。
 - 通知、报表导出、附件上传未纳入本次范围。
 - 未配置安全响应头（HSTS / CSP / X-Frame-Options 等），面向公网部署时应自行补上。
+- **代码格式暂未纳入 CI 门禁。** 接入 Prettier 时实测有 48 个存量文件不符合格式，一次性全量格式化的提交会把后续功能 diff 淹没在格式变更里。因此本轮只提供 `pnpm format` / `format:check` 命令，格式化随宽重构（工单 19–24）顺带完成，收口后再把 `format:check` 加入门禁。
 
 ---
 
