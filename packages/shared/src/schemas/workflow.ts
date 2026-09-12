@@ -36,9 +36,11 @@ export const applicationReviewSchema = z.object({
 })
 export type ApplicationReviewInput = z.infer<typeof applicationReviewSchema>
 
+const booleanFlag = z.enum(['true', 'false']).transform((value) => value === 'true')
+
 export const applicationQuerySchema = z.object({
   status: z.enum(APPLICATION_STATUSES).optional(),
-  mine: z.coerce.boolean().optional(),
+  mine: booleanFlag.optional(),
   page: z.coerce.number().int().min(1).default(1),
   pageSize: z.coerce.number().int().min(1).max(100).default(20),
 })
@@ -71,7 +73,7 @@ export const noticeCreateSchema = z.object({
   title: z.string().trim().min(2, '请填写标题').max(200),
   content: z.string().trim().min(2, '请填写正文').max(5000),
   category: z.enum(NOTICE_CATEGORIES),
-  isTop: z.coerce.boolean().default(false),
+  isTop: z.boolean().default(false),
 })
 export type NoticeCreateInput = z.infer<typeof noticeCreateSchema>
 

@@ -183,6 +183,54 @@ describe('调课 / 请假审批模块', () => {
         reason: '关联了一个不存在的授课任务用于验证校验逻辑',
       },
     })
+
     expect(response.statusCode).toBe(404)
+  })
+
+  describe('mine 参数的布尔语义', () => {
+    it('管理员传 mine=false 时与不传参数结果一致（均为本院系全部）', async () => {
+      const withoutParam = await listApplications('', adminHeaders)
+      const explicitFalse = await listApplications('?mine=false', adminHeaders)
+
+      expect(withoutParam.total).toBeGreaterThan(0)
+      expect(explicitFalse.total).toBe(withoutParam.total)
+    })
+
+    it('管理员传 mine=false 时不应被强制收窄为本人', async () => {
+      const explicitFalse = await listApplications('?mine=false', adminHeaders)
+      const explicitTrue = await listApplications('?mine=true', adminHeaders)
+
+      expect(explicitFalse.total).toBeGreaterThan(explicitTrue.total)
+    })
+
+    it('管理员传 mine=true 时只看自己提交的申请', async () => {
+      const result = await listApplications('?mine=true', adminHeaders)
+      expect(result.total).toBe(0)
+    })
+
+    it('普通教师即使传 mine=false 也只能看到自己的申请', async () => {
+      const result = await listApplications('?mine=false')
+      expect(result.total).toBeGreaterThan(0)
+      expect(result.items.every((item) => item.teacherName === '陈立群')).toBe(true)
+    })
+
+    it('mine 取值非法时返回 400 而非静默当成真', async () => {
+      const response = await app.inject({
+        method: 'GET',
+        url: '/api/applications?mine=abc',
+        headers: adminHeaders,
+      })
+      expect(response.statusCode).toBe(400)
+      expect(response.json<{ message: string }>().message).toContain('mine')
+    })
+
+    it('mine 传 0 同样被拒绝（不做隐式真值推断）', async () => {
+      const response = await app.inject({
+        method: 'GET',
+        url: '/api/applications?mine=0',
+        headers: adminHeaders,
+      })
+      expect(response.statusCode).toBe(400)
+    })
   })
 })
