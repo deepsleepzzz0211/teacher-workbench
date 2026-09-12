@@ -1,4 +1,4 @@
-import { Avatar, Dropdown, Layout, Menu, Space, Typography } from 'antd'
+import { Avatar, Dropdown, Layout, Menu, Typography } from 'antd'
 import {
   AppstoreOutlined,
   BellOutlined,
@@ -12,6 +12,7 @@ import {
   UserOutlined,
 } from '@ant-design/icons'
 import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom'
+import type { CSSProperties } from 'react'
 
 import { useAuth } from '@/auth/AuthContext'
 import { ROLE_LABELS } from '@tw/shared'
@@ -30,6 +31,19 @@ const MENU_ITEMS = [
   { key: '/notices', icon: <BellOutlined />, label: <Link to="/notices">通知公告</Link> },
   { key: '/todos', icon: <CheckSquareOutlined />, label: <Link to="/todos">待办事项</Link> },
 ]
+
+const USER_MENU_STYLE: CSSProperties = {
+  display: 'flex',
+  alignItems: 'center',
+  gap: 8,
+  padding: '4px 10px',
+  background: 'none',
+  border: 'none',
+  borderRadius: 8,
+  cursor: 'pointer',
+  font: 'inherit',
+  color: 'inherit',
+}
 
 export function AppLayout(): React.ReactNode {
   const { user, logout } = useAuth()
@@ -102,6 +116,7 @@ export function AppLayout(): React.ReactNode {
           </Typography.Text>
 
           <Dropdown
+            trigger={['click', 'hover']}
             menu={{
               items: [
                 {
@@ -113,15 +128,13 @@ export function AppLayout(): React.ReactNode {
               ],
             }}
           >
-            <Space style={{ cursor: 'pointer' }} data-testid="user-menu">
+            <button type="button" data-testid="user-menu" style={USER_MENU_STYLE}>
               <Avatar size={32} icon={<UserOutlined />} style={{ background: '#1d4ed8' }} />
-              <span>
-                {user?.name}
-                <Typography.Text type="secondary" style={{ marginLeft: 8, fontSize: 12 }}>
-                  {user ? ROLE_LABELS[user.role] : ''}
-                </Typography.Text>
-              </span>
-            </Space>
+              <span>{user?.name}</span>
+              <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+                {user ? ROLE_LABELS[user.role] : ''}
+              </Typography.Text>
+            </button>
           </Dropdown>
         </Header>
 

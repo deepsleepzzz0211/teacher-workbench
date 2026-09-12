@@ -147,29 +147,44 @@ export function NoticePage(): React.ReactNode {
             dataSource={listQuery.data?.items ?? []}
             renderItem={(notice) => (
               <List.Item
-                style={{ cursor: 'pointer' }}
-                onClick={() => openDetail(notice)}
+                style={{ padding: 0 }}
                 actions={[
                   <Typography.Text key="time" type="secondary" style={{ fontSize: 12 }}>
                     {dayjs(notice.publishedAt).format('YYYY-MM-DD HH:mm')}
                   </Typography.Text>,
                 ]}
               >
-                <List.Item.Meta
-                  title={
-                    <Flex gap={8} align="center" wrap>
-                      {notice.isTop ? <Tag color="red">置顶</Tag> : null}
-                      {!notice.isRead ? <Tag color="blue">未读</Tag> : null}
-                      <Tag>{NOTICE_CATEGORY_LABELS[notice.category]}</Tag>
-                      <Typography.Text strong>{notice.title}</Typography.Text>
-                    </Flex>
-                  }
-                  description={
-                    <Typography.Text type="secondary" style={{ fontSize: 12 }}>
-                      发布人：{notice.publisherName}
-                    </Typography.Text>
-                  }
-                />
+                <button
+                  type="button"
+                  onClick={() => openDetail(notice)}
+                  style={{
+                    width: '100%',
+                    display: 'block',
+                    textAlign: 'left',
+                    padding: '10px 0',
+                    background: 'none',
+                    border: 'none',
+                    font: 'inherit',
+                    color: 'inherit',
+                    cursor: 'pointer',
+                  }}
+                >
+                  <List.Item.Meta
+                    title={
+                      <Flex gap={8} align="center" wrap>
+                        {notice.isTop ? <Tag color="red">置顶</Tag> : null}
+                        {!notice.isRead ? <Tag color="blue">未读</Tag> : null}
+                        <Tag>{NOTICE_CATEGORY_LABELS[notice.category]}</Tag>
+                        <Typography.Text strong>{notice.title}</Typography.Text>
+                      </Flex>
+                    }
+                    description={
+                      <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+                        发布人：{notice.publisherName}
+                      </Typography.Text>
+                    }
+                  />
+                </button>
               </List.Item>
             )}
           />
