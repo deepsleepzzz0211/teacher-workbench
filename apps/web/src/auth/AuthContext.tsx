@@ -1,5 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
 
+import { useQueryClient } from '@tanstack/react-query'
+
 import type { AuthUser, LoginInput } from '@tw/shared'
 
 import { UNAUTHORIZED_EVENT } from '@/api/client'
@@ -17,6 +19,7 @@ interface AuthContextValue {
 const AuthContext = createContext<AuthContextValue | null>(null)
 
 export function AuthProvider({ children }: { children: ReactNode }): ReactNode {
+  const queryClient = useQueryClient()
   const [user, setUser] = useState<AuthUser | null>(null)
   const [ready, setReady] = useState(false)
 
@@ -48,10 +51,11 @@ export function AuthProvider({ children }: { children: ReactNode }): ReactNode {
     const handleUnauthorized = (): void => {
       clearToken()
       setUser(null)
+      queryClient.clear()
     }
     window.addEventListener(UNAUTHORIZED_EVENT, handleUnauthorized)
     return () => window.removeEventListener(UNAUTHORIZED_EVENT, handleUnauthorized)
-  }, [])
+  }, [queryClient])
 
   const login = useCallback(async (input: LoginInput): Promise<void> => {
     const result = await authApi.login(input)
@@ -62,7 +66,8 @@ export function AuthProvider({ children }: { children: ReactNode }): ReactNode {
   const logout = useCallback((): void => {
     clearToken()
     setUser(null)
-  }, [])
+    queryClient.clear()
+  }, [queryClient])
 
   const value = useMemo<AuthContextValue>(
     () => ({ user, ready, isAdmin: user?.role === 'dept_admin', login, logout }),

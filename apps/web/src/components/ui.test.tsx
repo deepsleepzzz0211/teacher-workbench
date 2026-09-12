@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
 import { App as AntApp, ConfigProvider } from 'antd'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
@@ -56,11 +57,13 @@ function renderLogin(): void {
   render(
     <ConfigProvider>
       <AntApp>
-        <MemoryRouter initialEntries={['/login']}>
-          <AuthProvider>
-            <LoginPage />
-          </AuthProvider>
-        </MemoryRouter>
+        <QueryClientProvider client={new QueryClient()}>
+          <MemoryRouter initialEntries={['/login']}>
+            <AuthProvider>
+              <LoginPage />
+            </AuthProvider>
+          </MemoryRouter>
+        </QueryClientProvider>
       </AntApp>
     </ConfigProvider>,
   )
