@@ -4,6 +4,7 @@ import type { FastifyInstance } from 'fastify'
 import {
   type Notice,
   type NoticeCategory,
+  idParamSchema,
   noticeCreateSchema,
   type NoticeListResult,
   paginationQuerySchema,
@@ -82,14 +83,14 @@ export async function noticeRoutes(app: FastifyInstance): Promise<void> {
   })
 
   app.get('/:id', async (request): Promise<Notice> => {
-    const { id } = request.params as { id: string }
+    const { id } = parseOrThrow(idParamSchema, request.params)
     const rows = await baseQuery(request.currentUser.sub).where(eq(notices.id, id)).limit(1)
     if (rows.length === 0) throw notFound('通知不存在')
     return toNotice(rows[0]!)
   })
 
   app.post('/:id/read', async (request): Promise<{ ok: true; isRead: true }> => {
-    const { id } = request.params as { id: string }
+    const { id } = parseOrThrow(idParamSchema, request.params)
     const [notice] = await db.select({ id: notices.id }).from(notices).where(eq(notices.id, id)).limit(1)
     if (!notice) throw notFound('通知不存在')
 

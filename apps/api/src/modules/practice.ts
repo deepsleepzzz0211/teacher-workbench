@@ -6,6 +6,7 @@ import {
   type PracticeProgress,
   PRACTICE_REQUIRED_DAYS,
   PRACTICE_WINDOW_YEARS,
+  idParamSchema,
   practiceCreateSchema,
   resolvePracticeDays,
 } from '@tw/shared'
@@ -86,7 +87,7 @@ export async function practiceRoutes(app: FastifyInstance): Promise<void> {
   })
 
   app.delete('/:id', async (request): Promise<{ ok: true }> => {
-    const { id } = request.params as { id: string }
+    const { id } = parseOrThrow(idParamSchema, request.params)
     const [existing] = await db
       .select()
       .from(enterprisePractices)

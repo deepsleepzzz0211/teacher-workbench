@@ -256,7 +256,7 @@ export async function workloadRoutes(app: FastifyInstance): Promise<void> {
   })
 
   app.delete('/tasks/:id', async (request, reply): Promise<{ ok: true }> => {
-    const { id } = request.params as { id: string }
+    const { id } = parseOrThrow(idParamSchema, request.params)
     const [existing] = await db.select().from(teachingTasks).where(eq(teachingTasks.id, id)).limit(1)
     if (!existing || existing.teacherId !== request.currentUser.sub) throw notFound('授课任务不存在')
 
@@ -297,7 +297,7 @@ export async function workloadRoutes(app: FastifyInstance): Promise<void> {
   })
 
   app.delete('/items/:id', async (request, reply): Promise<{ ok: true }> => {
-    const { id } = request.params as { id: string }
+    const { id } = parseOrThrow(idParamSchema, request.params)
     const [existing] = await db.select().from(workloadItems).where(eq(workloadItems.id, id)).limit(1)
     if (!existing || existing.teacherId !== request.currentUser.sub) throw notFound('工作量记录不存在')
 

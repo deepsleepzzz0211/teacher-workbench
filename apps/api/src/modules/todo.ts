@@ -4,6 +4,7 @@ import type { FastifyInstance } from 'fastify'
 import {
   type Todo,
   type TodoPriority,
+  idParamSchema,
   todoCreateSchema,
   type TodoStatus,
   todoUpdateSchema,
@@ -66,7 +67,7 @@ export async function todoRoutes(app: FastifyInstance): Promise<void> {
   })
 
   app.patch('/:id', async (request): Promise<Todo> => {
-    const { id } = request.params as { id: string }
+    const { id } = parseOrThrow(idParamSchema, request.params)
     const input = parseOrThrow(todoUpdateSchema, request.body)
 
     const [existing] = await db.select().from(todos).where(eq(todos.id, id)).limit(1)
@@ -91,7 +92,7 @@ export async function todoRoutes(app: FastifyInstance): Promise<void> {
   })
 
   app.delete('/:id', async (request): Promise<{ ok: true }> => {
-    const { id } = request.params as { id: string }
+    const { id } = parseOrThrow(idParamSchema, request.params)
     const [existing] = await db.select().from(todos).where(eq(todos.id, id)).limit(1)
     if (!existing || existing.teacherId !== request.currentUser.sub) throw notFound('待办不存在')
 

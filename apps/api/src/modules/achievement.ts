@@ -12,6 +12,7 @@ import {
   type AchievementStats,
   achievementUpdateSchema,
   calcAchievementPoints,
+  idParamSchema,
   type Paginated,
 } from '@tw/shared'
 
@@ -153,7 +154,7 @@ export async function achievementRoutes(app: FastifyInstance): Promise<void> {
   })
 
   app.patch('/:id', async (request): Promise<Achievement> => {
-    const { id } = request.params as { id: string }
+    const { id } = parseOrThrow(idParamSchema, request.params)
     const input = parseOrThrow(achievementUpdateSchema, request.body)
 
     const [existing] = await db.select().from(achievements).where(eq(achievements.id, id)).limit(1)
@@ -183,7 +184,7 @@ export async function achievementRoutes(app: FastifyInstance): Promise<void> {
   })
 
   app.delete('/:id', async (request): Promise<{ ok: true }> => {
-    const { id } = request.params as { id: string }
+    const { id } = parseOrThrow(idParamSchema, request.params)
     const [existing] = await db.select().from(achievements).where(eq(achievements.id, id)).limit(1)
     if (!existing || existing.teacherId !== request.currentUser.sub) throw notFound('成果记录不存在')
 
