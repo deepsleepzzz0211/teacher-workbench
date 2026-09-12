@@ -8,20 +8,16 @@ import {
   Button,
   Card,
   Checkbox,
-  Col,
   DatePicker,
   Flex,
   Form,
   Input,
-  Modal,
-  Row,
   Segmented,
   Select,
   Table,
   Tag,
   Typography,
 } from 'antd'
-import type { TableProps } from 'antd'
 import dayjs, { type Dayjs } from 'dayjs'
 
 import {
@@ -35,11 +31,10 @@ import {
 import { getErrorMessage } from '@/api/client'
 import { todoApi } from '@/api/endpoints'
 import { PageHeader, StatCard } from '@/components/PageHeader'
+import { type Columns, FormModal, StatRow, useConfirmDelete } from '@/components/blocks'
 import { TodoPriorityTag } from '@/components/tags'
 import { useUnsavedChanges } from '@/hooks/useUnsavedChanges'
 import { formatDate } from '@/utils/format'
-
-type Columns<T> = NonNullable<TableProps<T>['columns']>
 
 interface TodoFormValues {
   title: string
@@ -60,7 +55,8 @@ const FILTER_OPTIONS = [
 ]
 
 export function TodoPage(): React.ReactNode {
-  const { message, modal } = AntApp.useApp()
+  const { message } = AntApp.useApp()
+  const confirmDelete = useConfirmDelete()
   const queryClient = useQueryClient()
 
   const [filter, setFilter] = useState<string>('all')
@@ -132,13 +128,10 @@ export function TodoPage(): React.ReactNode {
   }
 
   const confirmRemove = (record: Todo): void => {
-    modal.confirm({
+    confirmDelete({
       title: '删除待办',
       content: `确定删除「${record.title}」吗？`,
-      okText: '删除',
-      okButtonProps: { danger: true },
-      cancelText: '取消',
-      onOk: () => removeMutation.mutateAsync(record.id),
+      onConfirm: () => removeMutation.mutateAsync(record.id),
     })
   }
 
@@ -237,22 +230,16 @@ export function TodoPage(): React.ReactNode {
         }
       />
 
-      <Row gutter={[16, 16]}>
-        <Col xs={24} sm={8}>
-          <StatCard title="未完成" value={counters.pending} suffix="项" tone="warning" />
-        </Col>
-        <Col xs={24} sm={8}>
-          <StatCard title="已完成" value={counters.done} suffix="项" tone="success" />
-        </Col>
-        <Col xs={24} sm={8}>
-          <StatCard
-            title="已逾期"
-            value={counters.overdue}
-            suffix="项"
-            tone={counters.overdue > 0 ? 'warning' : 'default'}
-          />
-        </Col>
-      </Row>
+      <StatRow>
+        <StatCard title="未完成" value={counters.pending} suffix="项" tone="warning" />
+        <StatCard title="已完成" value={counters.done} suffix="项" tone="success" />
+        <StatCard
+          title="已逾期"
+          value={counters.overdue}
+          suffix="项"
+          tone={counters.overdue > 0 ? 'warning' : 'default'}
+        />
+      </StatRow>
 
       <Card
         title={
@@ -274,31 +261,27 @@ export function TodoPage(): React.ReactNode {
         />
       </Card>
 
-      <Modal
+      <FormModal
         title="新增待办"
         open={modalOpen}
-        onCancel={() => guard.requestClose(() => setModalOpen(false))}
-        onOk={submit}
-        confirmLoading={createMutation.isPending}
-        okText="保存"
-        cancelText="取消"
-        destroyOnHidden
+        onClose={() => guard.requestClose(() => setModalOpen(false))}
+        onSubmit={submit}
+        submitting={createMutation.isPending}
+        form={form}
       >
-        <Form<TodoFormValues> form={form} layout="vertical">
-          <Form.Item name="title" label="待办内容" rules={[{ required: true, message: '请填写待办内容' }]}>
-            <Input placeholder="例如 提交本学期教学任务确认单" />
-          </Form.Item>
-          <Form.Item name="dueDate" label="截止日期" rules={[{ required: true, message: '请选择截止日期' }]}>
-            <DatePicker style={{ width: '100%' }} />
-          </Form.Item>
-          <Form.Item name="priority" label="优先级" rules={[{ required: true, message: '请选择优先级' }]}>
-            <Select options={PRIORITY_OPTIONS} />
-          </Form.Item>
-          <Form.Item name="relatedType" label="关联类型">
-            <Input placeholder="选填，例如 教学任务 / 教科研 / 师资认定" />
-          </Form.Item>
-        </Form>
-      </Modal>
+        <Form.Item name="title" label="待办内容" rules={[{ required: true, message: '请填写待办内容' }]}>
+          <Input placeholder="例如 提交本学期教学任务确认单" />
+        </Form.Item>
+        <Form.Item name="dueDate" label="截止日期" rules={[{ required: true, message: '请选择截止日期' }]}>
+          <DatePicker style={{ width: '100%' }} />
+        </Form.Item>
+        <Form.Item name="priority" label="优先级" rules={[{ required: true, message: '请选择优先级' }]}>
+          <Select options={PRIORITY_OPTIONS} />
+        </Form.Item>
+        <Form.Item name="relatedType" label="关联类型">
+          <Input placeholder="选填，例如 教学任务 / 教科研 / 师资认定" />
+        </Form.Item>
+      </FormModal>
 
       {guard.confirmNode}
     </Flex>
