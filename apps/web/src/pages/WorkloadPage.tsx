@@ -9,12 +9,10 @@ import {
   Card,
   Col,
   DatePicker,
-  Divider,
   Flex,
   Form,
   Input,
   InputNumber,
-  Popover,
   Progress,
   Row,
   Select,
@@ -28,11 +26,7 @@ import dayjs from 'dayjs'
 
 import {
   calcItemHours,
-  calcTaskEffectiveHours,
-  COURSE_TYPE_COEFFICIENTS,
   COURSE_TYPE_LABELS,
-  type CourseType,
-  explainTaskCalculation,
   MAX_WEEKS,
   TERM_REQUIRED_HOURS,
   type TeachingTask,
@@ -49,9 +43,20 @@ import { getErrorMessage } from '@/api/client'
 import { catalogApi, workloadApi } from '@/api/endpoints'
 import { EChart } from '@/components/EChart'
 import { PageHeader, StatCard } from '@/components/PageHeader'
-import { type Columns, FormModal, StatRow, useConfirmDelete } from '@/components/blocks'
+import { FormModal, StatRow, useConfirmDelete } from '@/components/blocks'
 import { useUnsavedChanges } from '@/hooks/useUnsavedChanges'
 import { palette } from '@/theme'
+
+import { buildCourseTypeOption, buildWeeklyOption } from './workload/chartOptions'
+import { buildItemColumns } from './workload/itemColumns'
+import { buildTaskColumns } from './workload/taskColumns'
+import { TaskPreviewBox } from './workload/TaskPreviewBox'
+import {
+  EMPTY_TASK_PREVIEW,
+  type ItemFormValues,
+  type TaskFormValues,
+  type TaskPreview,
+} from './workload/types'
 
 const WEEKDAY_OPTIONS = WEEKDAY_LABELS.map((label, index) => ({ label, value: index + 1 }))
 const PARITY_OPTIONS = WEEK_PARITIES.map((value) => ({ label: WEEK_PARITY_LABELS[value], value }))
@@ -59,46 +64,6 @@ const ITEM_CATEGORY_OPTIONS = WORKLOAD_ITEM_CATEGORIES.map((value) => ({
   label: WORKLOAD_ITEM_RULES[value].label,
   value,
 }))
-
-interface TaskFormValues {
-  termId: string
-  courseId: string
-  classId: string
-  location?: string
-  weekday: number
-  startSection: number
-  endSection: number
-  weekStart: number
-  weekEnd: number
-  weekParity: 'all' | 'odd' | 'even'
-  totalHours: number
-  studentCount: number
-  repeatIndex: number
-  remark?: string
-}
-
-interface ItemFormValues {
-  termId: string
-  category: WorkloadItemCategory
-  title: string
-  quantity: number
-  occurredOn: dayjs.Dayjs
-  remark?: string
-}
-
-interface TaskPreview {
-  totalHours: number
-  courseType: CourseType
-  studentCount: number
-  repeatIndex: number
-}
-
-const EMPTY_TASK_PREVIEW: TaskPreview = {
-  totalHours: 0,
-  courseType: 'theory',
-  studentCount: 0,
-  repeatIndex: 1,
-}
 
 export function WorkloadPage(): React.ReactNode {
   const { message } = AntApp.useApp()
@@ -203,48 +168,8 @@ export function WorkloadPage(): React.ReactNode {
   const tasks = tasksQuery.data ?? []
   const items = itemsQuery.data ?? []
 
-  const weeklyOption = useMemo(
-    () => ({
-      tooltip: { trigger: 'axis' as const },
-      grid: { left: 8, right: 16, top: 20, bottom: 8, containLabel: true },
-      xAxis: {
-        type: 'category' as const,
-        data: (summary?.weekly ?? []).map((entry) => `第${entry.week}周`),
-        axisLabel: { fontSize: 10, interval: 1 },
-      },
-      yAxis: { type: 'value' as const, name: '学时', splitLine: { lineStyle: { type: 'dashed' as const } } },
-      series: [
-        {
-          type: 'bar' as const,
-          data: (summary?.weekly ?? []).map((entry) => entry.hours),
-          itemStyle: { color: palette.primary, borderRadius: [4, 4, 0, 0] },
-        },
-      ],
-    }),
-    [summary],
-  )
-
-  const courseTypeOption = useMemo(() => {
-    const entries = Object.entries(summary?.byCourseType ?? {}).filter(([, hours]) => hours > 0)
-    return {
-      tooltip: { trigger: 'item' as const },
-      grid: { left: 8, right: 16, top: 16, bottom: 8, containLabel: true },
-      xAxis: {
-        type: 'category' as const,
-        data: entries.map(([type]) => COURSE_TYPE_LABELS[type as CourseType]),
-        axisLabel: { fontSize: 11 },
-      },
-      yAxis: { type: 'value' as const, name: '学时', splitLine: { lineStyle: { type: 'dashed' as const } } },
-      series: [
-        {
-          type: 'bar' as const,
-          barWidth: 36,
-          data: entries.map(([, hours]) => hours),
-          itemStyle: { color: palette.chartSeries, borderRadius: [6, 6, 0, 0] },
-        },
-      ],
-    }
-  }, [summary])
+  const weeklyOption = useMemo(() => buildWeeklyOption(summary), [summary])
+  const courseTypeOption = useMemo(() => buildCourseTypeOption(summary), [summary])
 
   const openCreateTask = (): void => {
     setEditingTask(null)
@@ -366,129 +291,8 @@ export function WorkloadPage(): React.ReactNode {
     })
   }
 
-  const taskColumns: Columns<TeachingTask> = [
-    { title: '课程名称', dataIndex: 'courseName', width: 180, fixed: 'left' },
-    {
-      title: '课程类型',
-      dataIndex: 'courseType',
-      width: 110,
-      render: (value: CourseType) => <Tag color="blue">{COURSE_TYPE_LABELS[value]}</Tag>,
-    },
-    { title: '授课班级', dataIndex: 'className', width: 190 },
-    { title: '人数', dataIndex: 'studentCount', width: 72, align: 'right' },
-    {
-      title: '上课时间',
-      key: 'slot',
-      width: 150,
-      render: (_, task) =>
-        `${WEEKDAY_LABELS[task.weekday - 1] ?? ''} 第 ${task.startSection}-${task.endSection} 节`,
-    },
-    {
-      title: '周次',
-      key: 'weeks',
-      width: 120,
-      render: (_, task) =>
-        `${task.weekStart}-${task.weekEnd} 周 · ${WEEK_PARITY_LABELS[task.weekParity]}`,
-    },
-    { title: '地点', dataIndex: 'location', width: 140, render: (value: string) => value || '—' },
-    { title: '总学时', dataIndex: 'totalHours', width: 88, align: 'right' },
-    {
-      title: '折算学时',
-      dataIndex: 'effectiveHours',
-      width: 100,
-      align: 'right',
-      render: (value: number) => <Typography.Text strong>{value.toFixed(1)}</Typography.Text>,
-    },
-    {
-      title: '操作',
-      key: 'actions',
-      width: 190,
-      fixed: 'right',
-      render: (_, task) => {
-        const detail = explainTaskCalculation({
-          totalHours: task.totalHours,
-          courseType: task.courseType,
-          studentCount: task.studentCount,
-          repeatIndex: task.repeatIndex,
-        })
-        return (
-          <Flex gap={4}>
-            <Popover
-              title="折算过程"
-              content={
-                <div style={{ lineHeight: 1.9, fontSize: 12 }}>
-                  <div>
-                    总学时：{detail.totalHours} 学时
-                  </div>
-                  <div>
-                    课程类型系数：{detail.typeCoefficient.toFixed(2)}（{COURSE_TYPE_LABELS[task.courseType]}）
-                  </div>
-                  <div>
-                    班级规模系数：{detail.classSizeFactor.toFixed(2)}（{task.studentCount} 人）
-                  </div>
-                  <div>
-                    重复课系数：{detail.repeatFactor.toFixed(2)}
-                    {task.repeatIndex > 1 ? `（第 ${task.repeatIndex} 次授课）` : '（首次授课）'}
-                  </div>
-                  <Divider style={{ margin: '6px 0' }} />
-                  <div>
-                    折算学时 = {detail.totalHours} × {detail.typeCoefficient.toFixed(2)} ×{' '}
-                    {detail.classSizeFactor.toFixed(2)} × {detail.repeatFactor.toFixed(2)} ={' '}
-                    <strong>{detail.effectiveHours} 学时</strong>
-                  </div>
-                </div>
-              }
-            >
-              <Button size="small" type="link">
-                规则
-              </Button>
-            </Popover>
-            <Button size="small" type="link" onClick={() => openEditTask(task)}>
-              编辑
-            </Button>
-            <Button size="small" type="link" danger onClick={() => confirmDeleteTask(task)}>
-              删除
-            </Button>
-          </Flex>
-        )
-      },
-    },
-  ]
-
-  const itemColumns: Columns<WorkloadItem> = [
-    {
-      title: '类别',
-      dataIndex: 'category',
-      width: 150,
-      render: (value: WorkloadItemCategory) => <Tag>{WORKLOAD_ITEM_RULES[value].label}</Tag>,
-    },
-    { title: '工作内容', dataIndex: 'title' },
-    { title: '数量', dataIndex: 'quantity', width: 90, align: 'right' },
-    {
-      title: '单位',
-      dataIndex: 'category',
-      width: 110,
-      render: (value: WorkloadItemCategory) => WORKLOAD_ITEM_RULES[value].unit,
-    },
-    {
-      title: '折算学时',
-      dataIndex: 'hours',
-      width: 100,
-      align: 'right',
-      render: (value: number) => <Typography.Text strong>{value.toFixed(1)}</Typography.Text>,
-    },
-    { title: '发生日期', dataIndex: 'occurredOn', width: 120 },
-    {
-      title: '操作',
-      key: 'actions',
-      width: 80,
-      render: (_, item) => (
-        <Button size="small" type="link" danger onClick={() => confirmDeleteItem(item)}>
-          删除
-        </Button>
-      ),
-    },
-  ]
+  const taskColumns = buildTaskColumns({ onEdit: openEditTask, onDelete: confirmDeleteTask })
+  const itemColumns = buildItemColumns({ onDelete: confirmDeleteItem })
 
   if (termsQuery.isLoading) return <Skeleton active paragraph={{ rows: 8 }} />
   if (termsQuery.isError) {
@@ -856,40 +660,5 @@ export function WorkloadPage(): React.ReactNode {
       {taskGuard.confirmNode}
       {itemGuard.confirmNode}
     </Flex>
-  )
-}
-
-function TaskPreviewBox({ preview }: { preview: TaskPreview }): React.ReactNode {
-  const effectiveHours = calcTaskEffectiveHours({
-    totalHours: preview.totalHours,
-    courseType: preview.courseType,
-    studentCount: preview.studentCount,
-    repeatIndex: preview.repeatIndex,
-  })
-  const detail = explainTaskCalculation({
-    totalHours: preview.totalHours,
-    courseType: preview.courseType,
-    studentCount: preview.studentCount,
-    repeatIndex: preview.repeatIndex,
-  })
-  const baseCoefficient = COURSE_TYPE_COEFFICIENTS[preview.courseType]
-
-  return (
-    <Card size="small" style={{ background: palette.surfaceMuted, borderColor: palette.primarySoftBorder }}>
-      <Flex justify="space-between" align="center" wrap gap={8}>
-        <Typography.Text type="secondary" style={{ fontSize: 12 }}>
-          折算预览
-        </Typography.Text>
-        <Typography.Text strong style={{ fontSize: 16, color: palette.primary }}>
-          {effectiveHours.toFixed(1)} 折算学时
-        </Typography.Text>
-      </Flex>
-      <div style={{ marginTop: 6, fontSize: 12, lineHeight: 1.9, color: palette.textSecondary }}>
-        {detail.totalHours || 0} 学时 × {baseCoefficient.toFixed(2)}（{COURSE_TYPE_LABELS[preview.courseType]}）×{' '}
-        {detail.classSizeFactor.toFixed(2)}（{preview.studentCount || 0} 人）×{' '}
-        {detail.repeatFactor.toFixed(2)}（
-        {preview.repeatIndex > 1 ? `第 ${preview.repeatIndex} 次授课` : '首次授课'}）
-      </div>
-    </Card>
   )
 }
