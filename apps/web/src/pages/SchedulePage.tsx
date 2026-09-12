@@ -13,6 +13,7 @@ import {
 import { getErrorMessage } from '@/api/client'
 import { catalogApi, scheduleApi } from '@/api/endpoints'
 import { PageHeader, StatCard } from '@/components/PageHeader'
+import { StatRow } from '@/components/blocks'
 import { sectionRange } from '@/utils/format'
 
 const TEACHING_WEEKDAYS = [1, 2, 3, 4, 5]
@@ -100,22 +101,16 @@ export function SchedulePage(): React.ReactNode {
         />
       ) : null}
 
-      <Row gutter={[16, 16]}>
-        <Col xs={24} sm={8}>
-          <StatCard title="本周课程数" value={entries.length} suffix="门" tone="primary" />
-        </Col>
-        <Col xs={24} sm={8}>
-          <StatCard title="本周课堂教学节数" value={sectionCount} suffix="节" />
-        </Col>
-        <Col xs={24} sm={8}>
-          <StatCard
-            title="当前教学周"
-            value={currentWeek}
-            suffix="周"
-            hint={schedule?.term.name ?? ''}
-          />
-        </Col>
-      </Row>
+      <StatRow>
+        <StatCard title="本周课程数" value={entries.length} suffix="门" tone="primary" />
+        <StatCard title="本周课堂教学节数" value={sectionCount} suffix="节" />
+        <StatCard
+          title="当前教学周"
+          value={currentWeek}
+          suffix="周"
+          hint={schedule?.term.name ?? ''}
+        />
+      </StatRow>
 
       <Card
         title="周课表"
