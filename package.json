@@ -20,7 +20,7 @@
     "test:api": "pnpm --filter @tw/api test",
     "test:web": "pnpm --filter @tw/web test",
     "typecheck": "pnpm -r typecheck",
-    "e2e": "pnpm --filter @tw/e2e test",
+    "e2e": "pnpm --filter @tw/web build && pnpm --filter @tw/e2e test",
     "e2e:install": "pnpm --filter @tw/e2e install:browsers",
     "capture": "pnpm --filter @tw/e2e capture"
   },

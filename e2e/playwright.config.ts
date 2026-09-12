@@ -32,11 +32,11 @@ export default defineConfig({
       timeout: 120_000,
     },
     {
-      command: 'pnpm --filter @tw/web build && pnpm --filter @tw/web preview',
+      command: 'pnpm --filter @tw/web preview',
       cwd: repoRoot,
       url: 'http://127.0.0.1:5173',
       reuseExistingServer: true,
-      timeout: 300_000,
+      timeout: 120_000,
     },
   ],
 })
