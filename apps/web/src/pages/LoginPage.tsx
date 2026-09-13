@@ -69,7 +69,7 @@ export function LoginPage(): React.ReactNode {
         padding: 24,
       }}
     >
-      <Card style={{ width: 420, boxShadow: '0 24px 64px rgba(7,20,45,0.35)' }} styles={{ body: { padding: 32 } }}>
+      <Card style={{ width: 420, boxShadow: `0 24px 64px ${palette.shadowStrong}` }} styles={{ body: { padding: 32 } }}>
         <Flex vertical gap={4} style={{ marginBottom: 24 }}>
           <Flex align="center" gap={10}>
             <div

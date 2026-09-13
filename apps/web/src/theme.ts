@@ -18,10 +18,9 @@ export const palette = {
   textSecondary: '#475569',
   textMuted: '#64748b',
   hoverOverlay: 'rgba(255,255,255,0.08)',
+  shadowStrong: 'rgba(7,20,45,0.35)',
+  shadowSoft: 'rgba(15,23,42,0.04)',
 } as const
-
-export const PRIMARY = palette.primary
-export const SIDER_BG = palette.sider
 
 export const themeConfig: ThemeConfig = {
   token: {

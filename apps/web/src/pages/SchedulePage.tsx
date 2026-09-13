@@ -183,7 +183,7 @@ export function SchedulePage(): React.ReactNode {
                               borderLeft: `4px solid ${COURSE_TYPE_COLORS[entry.courseType]}`,
                               borderRadius: 6,
                               padding: '8px 10px',
-                              boxShadow: '0 1px 2px rgba(15,23,42,0.04)',
+                              boxShadow: `0 1px 2px ${palette.shadowSoft}`,
                             }}
                           >
                             <Typography.Text strong style={{ fontSize: 13 }}>
