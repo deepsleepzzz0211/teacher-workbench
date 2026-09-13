@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64" role="img" aria-label="T 字标与工作量">
+  <rect x="2" y="2" width="60" height="60" rx="14" fill="#1d4ed8"/>
+  <rect x="14" y="14" width="36" height="7.5" rx="3.75" fill="#ffffff"/>
+  <rect x="18" y="36" width="7" height="15" rx="3.5" fill="#93c5fd"/>
+  <rect x="28.5" y="21.5" width="7" height="29.5" rx="3.5" fill="#ffffff"/>
+  <rect x="39" y="30" width="7" height="21" rx="3.5" fill="#93c5fd"/>
+</svg>
