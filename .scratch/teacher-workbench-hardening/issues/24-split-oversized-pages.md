@@ -4,39 +4,36 @@
 
 **Blocked by:** 20 [migrate] 页面迁移到共享构建块
 
-**Status:** in-progress（教学工作量页已完成大部分拆分，但仍高于 300 行门槛；其余三页未开始）
+**Status:** in-progress（教学工作量页与成果页已达标；申请页、看板页未开始）
 
-## 已完成：教学工作量页（895 → 464 行）
+## 进度
 
-按职责拆出 `apps/web/src/pages/workload/`：
+| 页面 | 拆分前 | 拆分后 | 门槛 |
+|---|---|---|---|
+| `WorkloadPage` | 895 | **294** | ✅ |
+| `AchievementPage` | 479 | **256** | ✅ |
+| `ApplicationPage` | 466 | 未开始 | ❌ |
+| `DashboardPage` | 416 | 未开始 | ❌ |
 
-| 模块 | 内容 |
-|---|---|
-| `types.ts` | `TaskFormValues`、`ItemFormValues`、`TaskPreview`、`EMPTY_TASK_PREVIEW` |
-| `TaskPreviewBox.tsx` | 折算预览独立组件 |
-| `TaskPreviewBox.test.tsx` | **该组件自己的 4 条测试**（课程类型系数 / 超过 40 人 / 重复课 0.90 / 未填时显示 0 而非 NaN） |
-| `chartOptions.ts` | `buildWeeklyOption`、`buildCourseTypeOption` |
-| `taskColumns.tsx` | `buildTaskColumns({ onEdit, onDelete })` |
-| `itemColumns.tsx` | `buildItemColumns({ onDelete })` |
-| `TaskFormModal.tsx` | 授课任务弹窗 |
-| `ItemFormModal.tsx` | 其它工作量弹窗 |
+拆分出的模块（全部低于 300 行，最大 186）：
 
-列定义改为**接收回调的工厂**，把"编辑/删除"的意图作为参数注入，避免列定义反向闭包依赖页面状态。
+- `pages/workload/`：`types`、`TaskPreviewBox`（**含 4 条自有测试**）、`chartOptions`、`taskColumns`、`itemColumns`、`TaskFormModal`、`ItemFormModal`、`useWorkloadData`（查询/变更/失效）、`WorkloadSummary`、`WorkloadTables`
+- `pages/achievement/`：`types`、`options`、`chartOptions`、`columns`、`AchievementFormModal`、`AchievementStats`、`AchievementFilters`
+
+两页的列定义都改为**接收回调的工厂函数**（`buildTaskColumns({onEdit,onDelete})` 等），把"编辑/删除"的意图作为参数注入，避免列定义反向闭包依赖页面状态。
 
 ## 未完成
 
-- **教学工作量页仍为 464 行**，未达到 300 行门槛。还可继续抽出"查询与失效逻辑"（hooks）与"汇总卡/进度区块"两处，预计可降到 ~340 行。
-- **成果页（479）、申请页（466）、看板页（416）三页未开始拆分。**
+- **申请页（466 行）**：该页已在同一文件里含两个大子组件（`MyApplications` ~229 行、`PendingApprovals` ~157 行），天然的拆法是各自独立成文件；另可抽出两处列定义与两个弹窗。
+- **看板页（416 行）**：可抽出成就柱状图配置与若干展示区块（今日课程、本周课表、工作量/实践进度、待办与通知）。
 
-## 诚实说明：为什么没有把这一票勾完
+## 诚实说明：为什么停在这里
 
-拆分本身是纯结构重构、每一步都可以安全验证（每步都跑了 typecheck + lint + 测试）。但要让**四个页面全部**降到 300 行以下，需要的改动量远超前五张工单之和；在剩余额度内无法完成并验证，因此**没有把未做的部分标记为完成**。
-
-停在这里是刻意选择：当前状态是可运行、可测试、已提交的完整状态（296 条单元/集成/组件 + 27 条端到端全通过），而不是一个改到一半的中间态。
+拆分本身是纯结构重构、每一步都能安全验证。但把剩余两页也压到 300 行以下，需要把约 390 行代码原样迁移到新文件——在剩余额度内无法完成并验证。**停在这里是刻意的**：当前是可运行、可测试、已提交的完整状态，而不是改到一半的中间态（`pnpm e2e` 会真的启动服务跑 27 条端到端用例，半成品会直接暴露）。
 
 ## 验证（本次已完成部分）
 
-`typecheck` 退出码 0、`lint` 退出码 0、**83 + 160 + 53 = 296 条测试全通过**（前端 49 → 53，新增 4 条预览组件测试）、`pnpm build` 成功、真实浏览器端到端 **27 passed（无 flaky）**。
+`typecheck` 退出码 0、`lint` 退出码 0、**83 + 160 + 53 = 296 条测试全通过**、`pnpm build` 成功、真实浏览器端到端 **27 passed（无 flaky）**。
 
 - [ ] 教学工作量页拆分完成：表单弹窗、表格列定义、图表配置、查询与失效逻辑各自独立
 - [ ] 折算预览作为独立组件，并有对应测试
